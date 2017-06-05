@@ -51,6 +51,14 @@ app.get('/searchByUUID/:uuid', (req, res) => {
 	.then( obj => res.json( obj ) );
 });
 
+app.get('/searchLastSeconds/:seconds', (req, res) => {
+	const interval = req.params.seconds;
+	const nowSecs = Math.floor( Date.now() / 1000 );
+
+	fetchContent.searchUnixTimeRange(nowSecs - interval, nowSecs)
+	.then( obj => res.json( obj ) );
+});
+
 //---
 
 app.listen(process.env.PORT, function(){

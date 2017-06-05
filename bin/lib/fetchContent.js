@@ -78,7 +78,26 @@ function searchByUUID(uuid) {
 	return search({queryString: uuid});
 }
 
+function unixTimeToIsoTime(unixTime){
+	const date = new Date(0);
+	date.setUTCSeconds(unixTime);
+	return date.toISOString();
+}
+
+function searchUnixTimeRange(afterSecs, beforeSecs) {
+	// into this form: 2017-05-29T10:00:00Z
+	const  afterIsotime = unixTimeToIsoTime( afterSecs);
+	const beforeIsotime = unixTimeToIsoTime(beforeSecs);
+	const constraints = [
+		`lastPublishDateTime:>${afterIsotime}`,
+		`lastPublishDateTime:<${beforeIsotime}`
+	];
+
+	return search( { queryString: constraints.join(' and ') } );
+}
+
 module.exports = {
 	article,
 	searchByUUID,
+	searchUnixTimeRange,
 };
