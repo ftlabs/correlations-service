@@ -1,5 +1,5 @@
 const  dotenv = require('dotenv').config();
-const   debug = require('debug')('autovoice:index');
+const   debug = require('debug')('correlations:index');
 const express = require('express');
 const    path = require('path');
 const     app = express();
@@ -60,6 +60,25 @@ app.get('/searchLastSeconds/:seconds', (req, res) => {
 	const nowSecs = Math.floor( Date.now() / 1000 );
 
 	fetchContent.searchUnixTimeRange(nowSecs - interval, nowSecs)
+	.then( obj => res.json( obj ) );
+});
+
+app.get('/searchLastSeconds/:seconds/:entity', (req, res) => {
+	const interval = req.params.seconds;
+  const   entity = req.params.entity;
+	const  nowSecs = Math.floor( Date.now() / 1000 );
+
+	fetchContent.searchUnixTimeRange(nowSecs - interval, nowSecs, [entity])
+	.then( obj => res.json( obj ) );
+});
+
+app.get('/searchLastSeconds/:seconds/:entity1/:entity2', (req, res) => {
+	const interval = req.params.seconds;
+  const  entity1 = req.params.entity1;
+  const  entity2 = req.params.entity2;
+	const  nowSecs = Math.floor( Date.now() / 1000 );
+
+	fetchContent.searchUnixTimeRange(nowSecs - interval, nowSecs, [entity1, entity2])
 	.then( obj => res.json( obj ) );
 });
 

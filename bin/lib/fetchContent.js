@@ -21,12 +21,18 @@ function constructSAPIQuery( params ) {
 	   maxResults : 1,
 		     offset : 0,
 		    aspects : [ "title"], // [ "title", "location", "summary", "lifecycle", "metadata"],
+		constraints : []
 	};
 
 	const combined = Object.assign({}, defaults, params);
 
+	let queryString = combined.queryString;
+	if (queryString == '' && combined.constraints.length > 0 ) {
+		queryString = combined.constraints.join(' and ');
+	}
+
 	const full = {
-  	"queryString": combined.queryString,
+  	"queryString": queryString,
   	"queryContext" : {
          "curations" : [ "ARTICLES", "BLOGS" ]
 		},
@@ -85,16 +91,18 @@ function unixTimeToIsoTime(unixTime){
 	return isoTime;
 }
 
-function searchUnixTimeRange(afterSecs, beforeSecs) {
+function searchUnixTimeRange(afterSecs, beforeSecs, extraConstraints=[] ) {
 	// into this form: 2017-05-29T10:00:00Z
 	const  afterIsotime = unixTimeToIsoTime( afterSecs);
 	const beforeIsotime = unixTimeToIsoTime(beforeSecs);
-	const constraints = [
+	const timeConstraints = [
 		`lastPublishDateTime:>${afterIsotime}`,
 		`lastPublishDateTime:<${beforeIsotime}`
 	];
 
-	return search( { queryString: constraints.join(' and ') } );
+	const constraints = timeConstraints.concat(extraConstraints);
+
+	return search( { constraints: constraints } );
 }
 
 module.exports = {
