@@ -1,4 +1,4 @@
-// This module makes use of 'node-fetch' plus some extra data munging for a variety of content sources.
+// This module makes use of 'node-fetch' to acces SAPI
 
 const fetch = require('node-fetch');
 const debug = require('debug')('bin:lib:fetchContent');
@@ -81,7 +81,8 @@ function searchByUUID(uuid) {
 function unixTimeToIsoTime(unixTime){
 	const date = new Date(0);
 	date.setUTCSeconds(unixTime);
-	return date.toISOString();
+	const isoTime = date.toISOString().replace('.000Z', 'Z');
+	return isoTime;
 }
 
 function searchUnixTimeRange(afterSecs, beforeSecs) {

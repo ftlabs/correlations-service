@@ -35,7 +35,11 @@ app.get('/dummy', (req, res) => {
 // these route *do* use s3o
 app.set('json spaces', 2);
 
-app.use(authS3O);
+if (process.env.BYPASS_SSO === 'true') {
+  // do no sso
+} else {
+  app.use(authS3O);
+}
 
 app.get('/', (req, res) => {
 	res.sendFile(path.join(__dirname + '/static/index.html'));
