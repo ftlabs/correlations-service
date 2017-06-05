@@ -46,6 +46,11 @@ app.get('/article/:uuid', (req, res) => {
 	.then( obj => res.json( obj ) );
 });
 
+app.get('/searchByUUID/:uuid', (req, res) => {
+	fetchContent.searchByUUID(req.params.uuid)
+	.then( obj => res.json( obj ) );
+});
+
 //---
 
 app.listen(process.env.PORT, function(){
