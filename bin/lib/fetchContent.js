@@ -14,23 +14,33 @@ if (! CAPI_KEY ) {
 const CAPI_PATH = 'http://api.ft.com/enrichedcontent/';
 const SAPI_PATH = 'http://api.ft.com/content/search/v1';
 
-function constructSAPIQuery( overrides ) {
-	const base = {
-  	"queryString": "",
+function constructSAPIQuery( params ) {
+
+	const defaults = {
+		queryString : "",
+	   maxResults : 1,
+		     offset : 0,
+		    aspects : [ "title"], // [ "title", "location", "summary", "lifecycle", "metadata"],
+	};
+
+	const combined = Object.assign({}, defaults, params);
+
+	const full = {
+  	"queryString": combined.queryString,
   	"queryContext" : {
          "curations" : [ "ARTICLES", "BLOGS" ]
 		},
   	"resultContext" : {
-			"maxResults" : "100",
-			"offset" : "0",
-			"aspects" : [ "title"],
-			"sortOrder": "DESC",
-			"sortField": "lastPublishDateTime",
-			"facets" : {"names":[ "organisations", "people"], "maxElements":-1}
+			"maxResults" : `${combined.maxResults}`,
+		 	    "offset" : `${combined.offset}`,
+			   "aspects" : combined.aspects,
+			 "sortOrder" : "DESC",
+			 "sortField" : "lastPublishDateTime",
+			    "facets" : {"names":[ "organisations", "people"], "maxElements":-1}
   	}
 	}
 
-	return Object.assign({}, base, overrides);
+	return full;
 }
 
 function article(uuid) {
@@ -43,12 +53,10 @@ function article(uuid) {
 	;
 }
 
-function searchByUUID(uuid) {
-	debug(`uuid=${uuid}`);
+function search(params) {
 	const sapiUrl = `${SAPI_PATH}?apiKey=${CAPI_KEY}`;
-	const sapiQuery = constructSAPIQuery( {queryString: uuid} );
-
-	debug(`searchByUUID: sapiQuery=${JSON.stringify(sapiQuery)}`);
+	const sapiQuery = constructSAPIQuery( params );
+	debug(`search: sapiQuery=${JSON.stringify(sapiQuery)}`);
 
 	return fetch(sapiUrl, {
 		 method: 'POST',
@@ -59,13 +67,16 @@ function searchByUUID(uuid) {
 	})
 	.then( res  => res.text() )
 	.then( text => {
-		debug(`searchByUUID: text=${text}`);
+		debug(`search: res.text=${text}`);
 		return text;
 	})
 	.then( text => JSON.parse(text) )
 	;
 }
 
+function searchByUUID(uuid) {
+	return search({queryString: uuid});
+}
 
 module.exports = {
 	article,
