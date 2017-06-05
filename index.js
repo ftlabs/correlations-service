@@ -5,6 +5,7 @@ const    path = require('path');
 const     app = express();
 
 const fetchContent = require('./bin/lib/fetchContent');
+const    correlate = require('./bin/lib/correlate');
 
 const authS3O = require('s3o-middleware');
 
@@ -82,6 +83,14 @@ app.get('/searchLastSeconds/:seconds/:entity1/:entity2', (req, res) => {
     constraints : [entity1, entity2],
      maxResults : 100,
   })
+	.then( obj => res.json( obj ) );
+});
+
+app.get('/updateCorrelations/:seconds', (req, res) => {
+	const interval = req.params.seconds;
+	const nowSecs = Math.floor( Date.now() / 1000 );
+
+	correlate.updateCorrelations(nowSecs - interval, nowSecs)
 	.then( obj => res.json( obj ) );
 });
 
