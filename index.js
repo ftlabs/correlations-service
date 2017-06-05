@@ -4,7 +4,7 @@ const express = require('express');
 const    path = require('path');
 const     app = express();
 
-// const               autovoice = require('./bin/lib/autovoice');
+const fetchContent = require('./bin/lib/fetchContent');
 
 const authS3O = require('s3o-middleware');
 
@@ -39,6 +39,11 @@ app.use(authS3O);
 
 app.get('/', (req, res) => {
 	res.sendFile(path.join(__dirname + '/static/index.html'));
+});
+
+app.get('/article/:uuid', (req, res) => {
+	fetchContent.article(req.params.uuid)
+	.then( obj => res.json( obj ) );
 });
 
 //---
