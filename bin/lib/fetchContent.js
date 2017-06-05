@@ -91,7 +91,7 @@ function unixTimeToIsoTime(unixTime){
 	return isoTime;
 }
 
-function searchUnixTimeRange(afterSecs, beforeSecs, extraConstraints=[] ) {
+function searchUnixTimeRange(afterSecs, beforeSecs, params={} ) {
 	// into this form: 2017-05-29T10:00:00Z
 	const  afterIsotime = unixTimeToIsoTime( afterSecs);
 	const beforeIsotime = unixTimeToIsoTime(beforeSecs);
@@ -100,9 +100,13 @@ function searchUnixTimeRange(afterSecs, beforeSecs, extraConstraints=[] ) {
 		`lastPublishDateTime:<${beforeIsotime}`
 	];
 
-	const constraints = timeConstraints.concat(extraConstraints);
+	if (! params.hasOwnProperty('constraints')) {
+		params.constraints = [];
+	}
 
-	return search( { constraints: constraints } );
+	params.constraints = params.constraints.concat( timeConstraints );
+
+	return search( params );
 }
 
 module.exports = {
