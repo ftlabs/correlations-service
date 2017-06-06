@@ -107,6 +107,13 @@ function updateAllCoocs( entityFacets ) {
 }
 
 function findIslands(coocs) {
+	const islands = [];
+	// loop over knownEntities
+	// - get coocs
+	// - loop over islands
+	// -- check entity and coocs against each island, add all if any match, record id of island
+	// - if no id, create a new island
+	// - more than 1 id, merge islands
 
 }
 
