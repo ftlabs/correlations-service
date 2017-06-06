@@ -13,6 +13,8 @@ const knownEntities = {
 	}
 }; // ontology => { "ontology:name" : articleCount }
 
+const allCoocs = {};
+
 function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs)
 		.then( searchResponse => searchResponse.sapiObj )
@@ -48,7 +50,10 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 }
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
-	debug(`getAllEntityFacets: entities=${JSON.stringify(entities)}`);
+	if (! entities.hasOwnProperty(ONTOLOGY)) {
+		entities[ONTOLOGY] = {};
+	}
+	debug(`getAllEntityFacets: num ${ONTOLOGY} entities=${Object.keys(entities[ONTOLOGY]).length}`);
 	const promises = Object.keys(entities[ONTOLOGY]).map(entity => {
 		return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity] } )
 	});
@@ -61,11 +66,11 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 				const      sapiObj = searchResponse.sapiObj;
 
 				if (! sapiObj.results ) {
-					debug('updateCorrelations: no results');
+					debug('getAllEntityFacets: no results');
 				} else if( ! sapiObj.results[0] ) {
-					debug('updateCorrelations: no results[0]');
+					debug('getAllEntityFacets: no results[0]');
 				} else if( ! sapiObj.results[0].facets ) {
-					debug('updateCorrelations: no results[0].facets');
+					debug('getAllEntityFacets: no results[0].facets');
 				} else {
 					entityFacets[targetEntity] = [];
 					for( let facet of sapiObj.results[0].facets ){
@@ -84,9 +89,32 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 		;
 }
 
+function updateAllCoocs( entityFacets ) {
+	let countNewEntities = 0;
+
+	for( let entity of Object.keys( entityFacets ) ){
+		if ( ! allCoocs.hasOwnProperty(entity)) {
+			allCoocs[entity] = {};
+			countNewEntities++;
+		}
+		const coocs = entityFacets[entity];
+		for( let coocEntity of coocs){
+			if ( ! allCoocs.hasOwnProperty(coocEntity)) {
+				allCoocs[coocEntity] = {};
+				countNewEntities++;
+			}
+			allCoocs[coocEntity][entity] = true;
+			allCoocs[entity][coocEntity] = true;
+		}
+	}
+	debug(`updateAllCoocs: countNewEntities=${countNewEntities}`);
+	return allCoocs;
+}
+
 function updateCorrelations(afterSecs, beforeSecs) {
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
+		.then(  entityFacets => updateAllCoocs(entityFacets) )
 		// .then( ) // loop over each new pair of entities, to get all titles
 		// .then( ) // iterate over pairs of entities to find connected islands
 		// .then( ) // iterate over each island to find merkel chains
