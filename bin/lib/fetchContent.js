@@ -42,7 +42,7 @@ function constructSAPIQuery( params ) {
 			   "aspects" : combined.aspects,
 			 "sortOrder" : "DESC",
 			 "sortField" : "lastPublishDateTime",
-			    "facets" : {"names":[ "organisations", "people"], "maxElements":-1}
+			    "facets" : {"names":["people"], "maxElements":-1}
   	}
 	}
 
@@ -76,7 +76,12 @@ function search(params) {
 		debug(`search: res.text=${text}`);
 		return text;
 	})
-	.then( text => JSON.parse(text) )
+	.then( text => {
+		return {
+			params : params,
+			sapiObj : JSON.parse(text)
+		};
+	} )
 	;
 }
 
