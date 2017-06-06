@@ -11,7 +11,7 @@ const knownEntities = {
 	}
 }; // ontology => { "ontology:name" : articleCount }
 
-function updateCorrelations(afterSecs, beforeSecs) {
+function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs)
 		.then( sapiObj => {
 			const deltaEntities = {};
@@ -41,6 +41,11 @@ function updateCorrelations(afterSecs, beforeSecs) {
 			}
 			return deltaEntities
 		})
+		;
+}
+
+function updateCorrelations(afterSecs, beforeSecs) {
+	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		// .then( ) // loop over each new entity, to get all facets
 		// .then( ) // loop over each new pair of entities, to get all titles
 		// .then( ) // iterate over pairs of entities to find connected islands
