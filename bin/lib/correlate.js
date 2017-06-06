@@ -6,14 +6,9 @@ const fetchContent = require('./fetchContent');
 
 const ONTOLOGY = 'people';
 
-const knownEntities = {
-	'testOntology' : {
-		'testOntology:name1' : 1,
-		'testOntology:name2' : 10
-	}
-}; // ontology => { "ontology:name" : articleCount }
+const knownEntities = {}; // ontology => { "ontology:name" : articleCount }
 
-const allCoocs = {};
+const allCoocs = {}; // [entity1][entity2]=true
 
 function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs)
@@ -111,11 +106,14 @@ function updateAllCoocs( entityFacets ) {
 	return allCoocs;
 }
 
+function findIslands(coocs) {
+
+}
+
 function updateCorrelations(afterSecs, beforeSecs) {
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
 		.then(  entityFacets => updateAllCoocs(entityFacets) )
-		// .then( ) // loop over each new pair of entities, to get all titles
 		// .then( ) // iterate over pairs of entities to find connected islands
 		// .then( ) // iterate over each island to find merkel chains
 		// .then( ) // update main records
@@ -126,4 +124,11 @@ module.exports = {
 	updateCorrelations,
 	knownEntities,
 	allCoocs : function(){return allCoocs;},
+	allData : function(){
+		return {
+			ONTOLOGY,
+			knownEntities,
+			allCoocs,
+		};
+	}
 };

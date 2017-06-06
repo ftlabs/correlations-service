@@ -98,6 +98,10 @@ app.get('/allCoocs', (req, res) => {
 	res.json( correlate.allCoocs() );
 });
 
+app.get('/allData', (req, res) => {
+	res.json( correlate.allData() );
+});
+
 //---
 
 app.listen(process.env.PORT, function(){
