@@ -125,4 +125,5 @@ function updateCorrelations(afterSecs, beforeSecs) {
 module.exports = {
 	updateCorrelations,
 	knownEntities,
+	allCoocs : function(){return allCoocs;},
 };

@@ -94,6 +94,10 @@ app.get('/updateCorrelations/:seconds', (req, res) => {
 	.then( obj => res.json( obj ) );
 });
 
+app.get('/allCoocs', (req, res) => {
+	res.json( correlate.allCoocs() );
+});
+
 //---
 
 app.listen(process.env.PORT, function(){
