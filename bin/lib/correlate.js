@@ -107,28 +107,64 @@ function updateAllCoocs( entityFacets ) {
 }
 
 function findIslands(coocs) {
-	const islands = [];
+	const checkedIslands = [];
+	const possibleIslands = Object.keys(coocs).map(c => {
+		let target = {};
+		target[c] = true;
+		return Object.assign(target, coocs[c]);;
+	}); // create new hashes of each island
+	
+	while (possibleIslands.length > 1) {
+		let candidateIsland = possibleIslands.pop();
+		let foundMatch = false;
+		for( let pIsland of possibleIslands ){
+			for( let entity of Object.keys(candidateIsland) ){
+				if (pIsland.hasOwnProperty(entity)) {
+					foundMatch = true;
+					Object.assign(pIsland, candidateIsland); // merge candidateIsland into pIsland
+					break;
+				}
+			}
+			if (foundMatch) { break; }
+		}
+		if (!foundMatch) {
+			checkedIslands.push(candidateIsland);
+		}
+	}
+	if (possibleIslands.length > 1) {
+		throw new Error(`more than 1 possibleIslands remaining. Should be 0 or 1.`);
+	} else if (possibleIslands.length == 1){
+		checkedIslands.push(possibleIslands[0]);
+	}
+
+	return checkedIslands;
 	// loop over knownEntities
 	// - get coocs
 	// - loop over islands
 	// -- check entity and coocs against each island, add all if any match, record id of island
 	// - if no id, create a new island
 	// - more than 1 id, merge islands
-
 }
 
-function updateCorrelations(afterSecs, beforeSecs) {
+function updateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
 		.then(  entityFacets => updateAllCoocs(entityFacets) )
-		// .then( ) // iterate over pairs of entities to find connected islands
+		;
+}
+
+function updateCorrelations(afterSecs, beforeSecs) {
+	return updateCorrelationsToAllCoocs(afterSecs, beforeSecs)
+		.then(         coocs => findIslands(coocs) )
 		// .then( ) // iterate over each island to find merkel chains
 		// .then( ) // update main records
 		;
 }
 
+
 module.exports = {
 	updateCorrelations,
+	updateCorrelationsToAllCoocs,
 	knownEntities,
 	allCoocs : function(){return allCoocs;},
 	allData : function(){

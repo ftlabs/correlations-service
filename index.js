@@ -94,6 +94,14 @@ app.get('/updateCorrelations/:seconds', (req, res) => {
 	.then( obj => res.json( obj ) );
 });
 
+app.get('/updateCorrelationsToAllCoocs/:seconds', (req, res) => {
+	const interval = req.params.seconds;
+	const nowSecs = Math.floor( Date.now() / 1000 );
+
+	correlate.updateCorrelationsToAllCoocs(nowSecs - interval, nowSecs)
+	.then( obj => res.json( obj ) );
+});
+
 app.get('/allCoocs', (req, res) => {
 	res.json( correlate.allCoocs() );
 });
