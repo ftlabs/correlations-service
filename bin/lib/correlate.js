@@ -250,6 +250,10 @@ function calcChainBetween(entity1, entity2) {
 	}
 }
 
+function calcChainTree(rootEntity){
+	//...
+}
+
 module.exports = {
 	updateCorrelations,
 	updateCorrelationsToAllCoocs,
