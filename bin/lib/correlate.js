@@ -5,9 +5,10 @@ const fetchContent = require('./fetchContent');
 
 const ONTOLOGY = 'people';
 
-const knownEntities = {}; // ontology => { "ontology:name" : articleCount }
-const      allCoocs = {}; // [entity1][entity2]=true
-let      allIslands = [];
+const    knownEntities = {}; // ontology => { "ontology:name" : articleCount }
+const         allCoocs = {}; // [entity1][entity2]=true
+let         allIslands = []; // [ {}, {} ]
+let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 
 const logbook = [];
 function logItem( location, obj ){
@@ -170,6 +171,18 @@ function updateCorrelations(afterSecs, beforeSecs) {
 			allIslands = islands;
 			return islands;
 		})
+		.then( islands => {
+			const islandsByEntity = {};
+
+			islands.forEach( island => {
+				Object.keys(island).forEach(entity => {
+					islandsByEntity[entity] = island;
+				});
+			});
+
+			allIslandsByEntity = islandsByEntity;
+			return islandsByEntity;
+		})
 		// .then( ) // iterate over each island to find merkel chains
 		// .then( ) // update main records
 		;
@@ -186,6 +199,7 @@ module.exports = {
 			knownEntities,
 			allCoocs,
 			allIslands,
+			allIslandsByEntity,
 		};
 	},
 	logbook : logbook,
