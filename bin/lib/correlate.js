@@ -1,14 +1,13 @@
 // This module makes use of 'node-fetch' to acces SAPI
 
 const debug = require('debug')('bin:lib:correlate');
-
 const fetchContent = require('./fetchContent');
 
 const ONTOLOGY = 'people';
 
 const knownEntities = {}; // ontology => { "ontology:name" : articleCount }
-
-const allCoocs = {}; // [entity1][entity2]=true
+const      allCoocs = {}; // [entity1][entity2]=true
+let      allIslands = [];
 
 const logbook = [];
 function logItem( location, obj ){
@@ -51,7 +50,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 					});
 				});
 			}
-			logItem('getLatestEntitiesMentioned', { numResults: numResults, 'deltaEntities.length' : deltaEntities.length, deltaEntities: deltaEntities });
+			logItem('getLatestEntitiesMentioned', { afterSecs: afterSecs, beforeSecs : beforeSecs, numResults: numResults, 'deltaEntities.length' : deltaEntities.length, deltaEntities: deltaEntities });
 			return deltaEntities
 		})
 		;
@@ -119,6 +118,14 @@ function updateAllCoocs( entityFacets ) {
 	return allCoocs;
 }
 
+function compareLengthsLongestFirst(a,b){
+	const aLength = Object.keys(a).length;
+	const bLength = Object.keys(b).length;
+	if (aLength < bLength)      { return  1; }
+	else if (aLength > bLength) { return -1; }
+	else                        { return  0; }
+}
+
 function findIslands(coocs) {
 	const checkedIslands = [];
 	const possibleIslands = Object.keys(coocs).map(c => {
@@ -150,13 +157,7 @@ function findIslands(coocs) {
 		checkedIslands.push(possibleIslands[0]);
 	}
 
-	return checkedIslands;
-	// loop over knownEntities
-	// - get coocs
-	// - loop over islands
-	// -- check entity and coocs against each island, add all if any match, record id of island
-	// - if no id, create a new island
-	// - more than 1 id, merge islands
+	return checkedIslands.sort(compareLengthsLongestFirst);
 }
 
 function updateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
@@ -169,6 +170,10 @@ function updateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
 function updateCorrelations(afterSecs, beforeSecs) {
 	return updateCorrelationsToAllCoocs(afterSecs, beforeSecs)
 		.then(         coocs => findIslands(coocs) )
+		.then( islands => {
+			allIslands = islands;
+			return islands;
+		})
 		// .then( ) // iterate over each island to find merkel chains
 		// .then( ) // update main records
 		;
@@ -184,6 +189,7 @@ module.exports = {
 			ONTOLOGY,
 			knownEntities,
 			allCoocs,
+			allIslands,
 		};
 	},
 	logbook : logbook,
