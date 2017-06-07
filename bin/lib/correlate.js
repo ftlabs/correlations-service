@@ -128,11 +128,7 @@ function compareLengthsLongestFirst(a,b){
 
 function findIslands(coocs) {
 	const checkedIslands = [];
-	const possibleIslands = Object.keys(coocs).map(c => {
-		let target = {};
-		target[c] = true;
-		return Object.assign(target, coocs[c]);;
-	}); // create new hashes of each island
+	const possibleIslands = Object.keys(coocs).map(c => { return Object.assign({[c] : c}, coocs[c]) }); // new hashes of each island
 
 	while (possibleIslands.length > 1) {
 		let candidateIsland = possibleIslands.pop();
