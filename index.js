@@ -69,7 +69,10 @@ app.get('/searchLastSeconds/:seconds/:entity', (req, res) => {
   const   entity = req.params.entity;
 	const  nowSecs = Math.floor( Date.now() / 1000 );
 
-	fetchContent.searchUnixTimeRange(nowSecs - interval, nowSecs, { constraints: [entity]})
+	fetchContent.searchUnixTimeRange(nowSecs - interval, nowSecs, {
+    constraints: [entity],
+    maxResults : 100,
+  })
 	.then( obj => res.json( obj ) );
 });
 

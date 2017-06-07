@@ -19,6 +19,10 @@ The following are mandatory params, the absence of which will kill the app on st
 * TOKEN=...
 * CAPI_KEY=...
 
+optional params
+
+* ONTOLOGY, default value is 'people', but could also be 'organisations'
+
 These are for local builds:
 
 * SERVER_ROOT=TRANSPORT_AND_DOMAIN_OF_SERVICE

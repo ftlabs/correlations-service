@@ -21,7 +21,8 @@ function constructSAPIQuery( params ) {
 	   maxResults : 1,
 		     offset : 0,
 		    aspects : [ "title"], // [ "title", "location", "summary", "lifecycle", "metadata"],
-		constraints : []
+		constraints : [],
+		   ontology : "people",
 	};
 
 	const combined = Object.assign({}, defaults, params);
@@ -42,7 +43,7 @@ function constructSAPIQuery( params ) {
 			   "aspects" : combined.aspects,
 			 "sortOrder" : "DESC",
 			 "sortField" : "lastPublishDateTime",
-			    "facets" : {"names":["people"], "maxElements":-1}
+			    "facets" : {"names":[combined.ontology], "maxElements":-1}
   	}
 	}
 

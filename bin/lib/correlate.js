@@ -3,9 +3,9 @@
 const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
 
-const ONTOLOGY = 'people';
+const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 
-const    knownEntities = {}; // ontology => { "ontology:name" : articleCount }
+const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
 let         allIslands = []; // [ {}, {} ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
@@ -21,7 +21,7 @@ function logItem( location, obj ){
 }
 
 function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
-	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs)
+	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { ontology: ONTOLOGY })
 		.then( searchResponse => searchResponse.sapiObj )
 		.then( sapiObj => {
 			const deltaEntities = {};
@@ -36,18 +36,14 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 				numResults = sapiObj.results[0].indexCount;
 				sapiObj.results[0].facets.forEach( facet => {
 					const ontology = facet.name;
-					if (! knownEntities.hasOwnProperty(ontology)) {
-						knownEntities[ontology] = {};
-					}
-					deltaEntities[ontology] = {};
-					const ontologyEntities = knownEntities[ontology];
+					if (ontology !== ONTOLOGY) { return; }
 					facet.facetElements.forEach( element => {
 						const entity = `${ontology}:${element.name}`;
-						if (! ontologyEntities.hasOwnProperty(entity)) {
-							ontologyEntities[entity] = 0;
+						if (! knownEntities.hasOwnProperty(entity)) {
+							knownEntities[entity] = 0;
 						}
-						ontologyEntities[entity] = ontologyEntities[entity] + element.count;
-						deltaEntities[ontology][entity] = element.count;
+						knownEntities[entity] = knownEntities[entity] + element.count;
+						deltaEntities[entity] = element.count;
 					});
 				});
 			}
@@ -58,12 +54,9 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 }
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
-	if (! entities.hasOwnProperty(ONTOLOGY)) {
-		entities[ONTOLOGY] = {};
-	}
-	debug(`getAllEntityFacets: num ${ONTOLOGY} entities=${Object.keys(entities[ONTOLOGY]).length}`);
-	const promises = Object.keys(entities[ONTOLOGY]).map(entity => {
-		return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity] } )
+	debug(`getAllEntityFacets: num entities=${Object.keys(entities).length}`);
+	const promises = Object.keys(entities).map(entity => {
+		return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
 	});
 
 	return Promise.all(promises)
@@ -229,13 +222,11 @@ function findLinks(chainSoFar, bestChain, targetEntity){
 function calcChainBetween(entity1, entity2) {
 	let chain = [];
 
-	if (! knownEntities.hasOwnProperty(ONTOLOGY) ) {
-		debug(`calcChainBetween: missing ONTOLOGY=${ONTOLOGY}`);
-	} else if (entity1 == entity2) {
+	if (entity1 == entity2) {
 		debug(`calcChainBetween: equal entities. entity1=${entity1}`);
-	} else if (! knownEntities[ONTOLOGY].hasOwnProperty(entity1) ) {
+	} else if (! knownEntities.hasOwnProperty(entity1) ) {
 		debug(`calcChainBetween: unknown entity. entity1=${entity1}`);
-	} else if (! knownEntities[ONTOLOGY].hasOwnProperty(entity2) ) {
+	} else if (! knownEntities.hasOwnProperty(entity2) ) {
 		debug(`calcChainBetween: unknown entity. entity2=${entity2}`);
 	} else if (! allIslandsByEntity[entity1].hasOwnProperty(entity2)) {
 		debug(`calcChainBetween: entities not on same island. entity1=${entity1}, entity2=${entity2}`);
@@ -282,9 +273,7 @@ function findAllChainLengths(rootEntity){
 
 function calcChainLengthsFrom(rootEntity){
 	let chainLengths = [];
-	if (! knownEntities.hasOwnProperty(ONTOLOGY) ) {
-		debug(`calcChainBetween: missing ONTOLOGY=${ONTOLOGY}`);
-	} else if (! knownEntities[ONTOLOGY].hasOwnProperty(rootEntity) ) {
+	if (! knownEntities.hasOwnProperty(rootEntity) ) {
 		debug(`calcChainBetween: unknown rootEntity=${rootEntity}`);
 	} else {
 		chainLengths = findAllChainLengths(rootEntity);
