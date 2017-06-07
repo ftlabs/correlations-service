@@ -190,6 +190,66 @@ function updateCorrelations(afterSecs, beforeSecs) {
 		;
 }
 
+// assume there *is* a chain
+function findLinks(chainSoFar, bestChain, targetEntity){
+
+	if (bestChain != null && chainSoFar.length >= (bestChain.length -1)) {
+		return bestChain;
+	}
+
+	const     latest = chainSoFar[chainSoFar.length -1];
+	const candidates = Object.keys( allCoocs[latest] );
+
+	// debug(`findLinks: latest=${latest}, candidates=${JSON.stringify(candidates)}, chainSoFar=${JSON.stringify(chainSoFar)}, targetEntity=${targetEntity}`);
+
+	for( let candidate of candidates){
+		if (candidate == targetEntity) {
+			return chainSoFar.concat([candidate]);
+		}
+	}
+
+	if (bestChain != null && chainSoFar.length >= (bestChain.length -2)) {
+		return bestChain;
+	}
+
+	for( let candidate of candidates){
+		if (! chainSoFar.includes(candidate) ) {
+			const chainFound = findLinks(chainSoFar.concat([candidate]), bestChain, targetEntity);
+			if (chainFound != null) {
+				if (bestChain == null || chainFound.length < bestChain.length) {
+					bestChain = chainFound;
+				}
+			}
+		}
+	}
+
+	return bestChain;
+}
+
+function calcChainBetween(entity1, entity2) {
+	let chain = [];
+
+	if (! knownEntities.hasOwnProperty(ONTOLOGY) ) {
+		debug(`calcChainBetween: missing ONTOLOGY=${ONTOLOGY}`);
+	} else if (entity1 == entity2) {
+		debug(`calcChainBetween: equal entities. entity1=${entity1}`);
+	} else if (! knownEntities[ONTOLOGY].hasOwnProperty(entity1) ) {
+		debug(`calcChainBetween: unknown entity. entity1=${entity1}`);
+	} else if (! knownEntities[ONTOLOGY].hasOwnProperty(entity2) ) {
+		debug(`calcChainBetween: unknown entity. entity2=${entity2}`);
+	} else if (! allIslandsByEntity[entity1].hasOwnProperty(entity2)) {
+		debug(`calcChainBetween: entities not on same island. entity1=${entity1}, entity2=${entity2}`);
+	} else {
+		chain = findLinks([entity1], null, entity2);
+	}
+
+	return {
+		entity1,
+		entity2,
+		chain,
+	}
+}
+
 module.exports = {
 	updateCorrelations,
 	updateCorrelationsToAllCoocs,
@@ -205,4 +265,5 @@ module.exports = {
 		};
 	},
 	logbook : logbook,
+	calcChainBetween,
 };
