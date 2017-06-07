@@ -115,11 +115,11 @@ app.get('/logbook', (req, res) => {
 });
 
 app.get('/calcChainBetween/:entity1/:entity2', (req, res) => {
-  const  entity1 = req.params.entity1;
-  const  entity2 = req.params.entity2;
+	res.json( correlate.calcChainBetween(req.params.entity1, req.params.entity2) );
+});
 
-	const obj = correlate.calcChainBetween(entity1, entity2);
-	res.json( obj );
+app.get('/calcChainLengthsFrom/:entity', (req, res) => {
+	res.json( correlate.calcChainLengthsFrom(req.params.entity) );
 });
 
 //---

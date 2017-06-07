@@ -250,8 +250,50 @@ function calcChainBetween(entity1, entity2) {
 	}
 }
 
-function calcChainTree(rootEntity){
-	//...
+function findAllChainLengths(rootEntity){
+	const chainLengths = [{
+		   links: 0,
+		entities: [rootEntity],
+	}];
+
+	const seen = {[rootEntity]: true};
+
+	let lastEntities = chainLengths[0].entities;
+	while(lastEntities.length > 0){
+	  const nextEntities = [];
+		for( let entity of lastEntities ){
+			for( let candidate of Object.keys( allCoocs[entity] )){
+				if (seen[candidate]) { continue; }
+				nextEntities.push(candidate);
+				seen[candidate] = true;
+			}
+		}
+		if (nextEntities.length > 0) {
+			chainLengths.push({
+				   links: chainLengths[chainLengths.length-1].links + 1,
+				entities: nextEntities,
+			});
+		}
+		lastEntities = nextEntities;
+	}
+
+	return chainLengths;
+}
+
+function calcChainLengthsFrom(rootEntity){
+	let chainLengths = [];
+	if (! knownEntities.hasOwnProperty(ONTOLOGY) ) {
+		debug(`calcChainBetween: missing ONTOLOGY=${ONTOLOGY}`);
+	} else if (! knownEntities[ONTOLOGY].hasOwnProperty(rootEntity) ) {
+		debug(`calcChainBetween: unknown rootEntity=${rootEntity}`);
+	} else {
+		chainLengths = findAllChainLengths(rootEntity);
+	}
+
+	return {
+		rootEntity,
+		chainLengths,
+	}
 }
 
 module.exports = {
@@ -270,4 +312,5 @@ module.exports = {
 	},
 	logbook : logbook,
 	calcChainBetween,
+	calcChainLengthsFrom,
 };
