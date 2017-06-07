@@ -129,7 +129,7 @@ function compareLengthsLongestFirst(a,b){
 
 function findIslands(coocs) {
 	const checkedIslands = [];
-	const possibleIslands = Object.keys(coocs).map(c => { return Object.assign({[c] : c}, coocs[c]) }); // new hashes of each island
+	const possibleIslands = Object.keys(coocs).map(c => { return Object.assign({[c] : true}, coocs[c]) }); // new hashes of each island
 
 	while (possibleIslands.length > 1) {
 		let candidateIsland = possibleIslands.pop();
@@ -157,6 +157,19 @@ function findIslands(coocs) {
 	return checkedIslands.sort(compareLengthsLongestFirst);
 }
 
+function linkKnownEntitiesToAllIslands(){
+	const islandsByEntity = {};
+
+	allIslands.forEach( island => {
+		Object.keys(island).forEach(entity => {
+			islandsByEntity[entity] = island;
+		});
+	});
+
+	allIslandsByEntity = islandsByEntity;
+	return islandsByEntity;
+}
+
 function updateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
@@ -171,18 +184,7 @@ function updateCorrelations(afterSecs, beforeSecs) {
 			allIslands = islands;
 			return islands;
 		})
-		.then( islands => {
-			const islandsByEntity = {};
-
-			islands.forEach( island => {
-				Object.keys(island).forEach(entity => {
-					islandsByEntity[entity] = island;
-				});
-			});
-
-			allIslandsByEntity = islandsByEntity;
-			return islandsByEntity;
-		})
+		.then( islands => linkKnownEntitiesToAllIslands())
 		// .then( ) // iterate over each island to find merkel chains
 		// .then( ) // update main records
 		;
