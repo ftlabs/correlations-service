@@ -10,11 +10,22 @@ const knownEntities = {}; // ontology => { "ontology:name" : articleCount }
 
 const allCoocs = {}; // [entity1][entity2]=true
 
+const logbook = [];
+function logItem( location, obj ){
+	const now = Date.now();
+	logbook.push( {
+		     now : now,
+        date : new Date(now).toISOString(),
+		location : location,
+		    data : obj } );
+}
+
 function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs)
 		.then( searchResponse => searchResponse.sapiObj )
 		.then( sapiObj => {
 			const deltaEntities = {};
+			let numResults;
 			if (! sapiObj.results ) {
 				debug('updateCorrelations: no results');
 			} else if( ! sapiObj.results[0] ) {
@@ -22,6 +33,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 			} else if( ! sapiObj.results[0].facets ) {
 				debug('updateCorrelations: no results[0].facets');
 			} else {
+				numResults = sapiObj.results[0].indexCount;
 				sapiObj.results[0].facets.forEach( facet => {
 					const ontology = facet.name;
 					if (! knownEntities.hasOwnProperty(ontology)) {
@@ -39,6 +51,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 					});
 				});
 			}
+			logItem('getLatestEntitiesMentioned', { numResults: numResults, 'deltaEntities.length' : deltaEntities.length, deltaEntities: deltaEntities });
 			return deltaEntities
 		})
 		;
@@ -113,7 +126,7 @@ function findIslands(coocs) {
 		target[c] = true;
 		return Object.assign(target, coocs[c]);;
 	}); // create new hashes of each island
-	
+
 	while (possibleIslands.length > 1) {
 		let candidateIsland = possibleIslands.pop();
 		let foundMatch = false;
@@ -161,7 +174,6 @@ function updateCorrelations(afterSecs, beforeSecs) {
 		;
 }
 
-
 module.exports = {
 	updateCorrelations,
 	updateCorrelationsToAllCoocs,
@@ -173,5 +185,6 @@ module.exports = {
 			knownEntities,
 			allCoocs,
 		};
-	}
+	},
+	logbook : logbook,
 };

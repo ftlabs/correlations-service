@@ -110,6 +110,10 @@ app.get('/allData', (req, res) => {
 	res.json( correlate.allData() );
 });
 
+app.get('/logbook', (req, res) => {
+	res.json( correlate.logbook.reverse() );
+});
+
 //---
 
 app.listen(process.env.PORT, function(){
