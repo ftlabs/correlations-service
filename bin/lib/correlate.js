@@ -10,6 +10,9 @@ const         allCoocs = {}; // [entity1][entity2]=true
 let         allIslands = []; // [ {}, {} ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 
+let  latestBeforeSecs = 0; // most recent update time
+let earliestAfterSecs = 0; // oldest update time
+
 const logbook = [];
 function logItem( location, obj ){
 	const now = Date.now();
@@ -163,7 +166,18 @@ function linkKnownEntitiesToAllIslands(){
 	return islandsByEntity;
 }
 
+function updateUpdateTimes(afterSecs, beforeSecs){
+	if( latestBeforeSecs == 0 || beforeSecs > latestBeforeSecs ){
+		latestBeforeSecs = beforeSecs;
+	}
+	if ( earliestAfterSecs == 0 || afterSecs < earliestAfterSecs ) {
+		earliestAfterSecs = afterSecs;
+	}
+}
+
 function updateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
+	updateUpdateTimes(afterSecs, beforeSecs);
+
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
 		.then(  entityFacets => updateAllCoocs(entityFacets) )
@@ -285,20 +299,30 @@ function calcChainLengthsFrom(rootEntity){
 	}
 }
 
+function getAllData(){
+	return {
+		ONTOLOGY,
+		times : {
+			 earliestAfterSecs,
+			 earliestAfterDate : new Date(earliestAfterSecs * 1000).toISOString(),
+		    latestBeforeSecs,
+			  latestBeforeDate : new Date( latestBeforeSecs * 1000).toISOString(),
+		 intervalCoveredSecs : (latestBeforeSecs - earliestAfterSecs),
+			intervalCoveredHrs : (latestBeforeSecs - earliestAfterSecs)/3600,
+		},
+	  knownEntities,
+		allCoocs,
+	  allIslands,
+		allIslandsByEntity,
+	};
+}
+
 module.exports = {
 	updateCorrelations,
 	updateCorrelationsToAllCoocs,
 	knownEntities,
 	allCoocs : function(){return allCoocs;},
-	allData : function(){
-		return {
-			ONTOLOGY,
-			knownEntities,
-			allCoocs,
-			allIslands,
-			allIslandsByEntity,
-		};
-	},
+	allData : getAllData,
 	logbook : logbook,
 	calcChainBetween,
 	calcChainLengthsFrom,
