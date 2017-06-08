@@ -89,19 +89,13 @@ app.get('/searchLastSeconds/:seconds/:entity1/:entity2', (req, res) => {
 	.then( obj => res.json( obj ) );
 });
 
-app.get('/updateCorrelations/:seconds', (req, res) => {
-	const interval = req.params.seconds;
-	const nowSecs = Math.floor( Date.now() / 1000 );
-
-	correlate.updateCorrelations(nowSecs - interval, nowSecs)
+app.get('/updateCorrelations', (req, res) => {
+	correlate.updateCorrelationsLatest()
 	.then( obj => res.json( obj ) );
 });
 
-app.get('/updateCorrelationsToAllCoocs/:seconds', (req, res) => {
-	const interval = req.params.seconds;
-	const nowSecs = Math.floor( Date.now() / 1000 );
-
-	correlate.updateCorrelationsToAllCoocs(nowSecs - interval, nowSecs)
+app.get('/updateCorrelationsEarlier/:seconds', (req, res) => {
+	correlate.updateCorrelationsEarlier(req.params.seconds)
 	.then( obj => res.json( obj ) );
 });
 

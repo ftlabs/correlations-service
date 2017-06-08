@@ -191,11 +191,27 @@ function updateCorrelations(afterSecs, beforeSecs) {
 			allIslands = islands;
 			return islands;
 		})
-		.then( islands => linkKnownEntitiesToAllIslands())
-		// .then( ) // iterate over each island to find merkel chains
-		// .then( ) // update main records
+		.then( islands => linkKnownEntitiesToAllIslands() )
+		.then( islandsByEntity => getSummaryData() )
 		;
 }
+
+function updateCorrelationsLatest() {
+	const    nowSecs = Math.floor( Date.now() / 1000 );
+	const beforeSecs = nowSecs;
+	const  afterSecs = (latestBeforeSecs == 0)? nowSecs - 3600 : latestBeforeSecs;
+
+	return updateCorrelations(afterSecs, beforeSecs);
+}
+
+function updateCorrelationsEarlier(intervalSecs) {
+	const earliestSecs = (earliestAfterSecs == 0)? Math.floor( Date.now() / 1000 ) : earliestAfterSecs;
+	const   beforeSecs = earliestSecs;
+	const    afterSecs = earliestSecs - intervalSecs;
+
+	return updateCorrelations(afterSecs, beforeSecs);
+}
+
 
 // assume there *is* a chain
 function findLinks(chainSoFar, bestChain, targetEntity){
@@ -299,7 +315,8 @@ function calcChainLengthsFrom(rootEntity){
 	}
 }
 
-function getAllData(){
+function getSummaryData(){
+	const largestIslandSize = (allIslands.length == 0)? 0 : Object.keys(allIslands[0]).length;
 	return {
 		ONTOLOGY,
 		times : {
@@ -310,16 +327,27 @@ function getAllData(){
 		 intervalCoveredSecs : (latestBeforeSecs - earliestAfterSecs),
 			intervalCoveredHrs : (latestBeforeSecs - earliestAfterSecs)/3600,
 		},
-	  knownEntities,
-		allCoocs,
-	  allIslands,
-		allIslandsByEntity,
+		counts : {
+			knownEntities : Object.keys(knownEntities).length,
+			allIslands : allIslands.length,
+			largestIslandSize: largestIslandSize,
+		},
 	};
 }
 
+function getAllData(){
+	const data = getSummaryData();
+	data[     'knownEntities'] = knownEntities;
+	data[          'allCoocs'] = allCoocs;
+	data[        'allIslands'] = allIslands;
+	data['allIslandsByEntity'] = allIslandsByEntity;
+
+	return data;
+}
+
 module.exports = {
-	updateCorrelations,
-	updateCorrelationsToAllCoocs,
+	updateCorrelationsLatest,
+	updateCorrelationsEarlier,
 	knownEntities,
 	allCoocs : function(){return allCoocs;},
 	allData : getAllData,
