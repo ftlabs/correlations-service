@@ -13,6 +13,8 @@ let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 let  latestBeforeSecs = 0; // most recent update time
 let earliestAfterSecs = 0; // oldest update time
 
+const AWeekOfSecs = 604800;
+
 const logbook = [];
 function logItem( location, obj ){
 	const now = Date.now();
@@ -213,7 +215,17 @@ function updateCorrelationsLatest() {
 	return updateCorrelations(afterSecs, beforeSecs);
 }
 
-function updateCorrelationsEarlier(intervalSecs) {
+function updateCorrelationsEarlier(intervalSecs=0) {
+	if (typeof intervalSecs == 'string') {
+		intervalSecs = parseInt(intervalSecs);
+	} else if (typeof intervalSecs != 'number') {
+		throw new Error(`updateCorrelationsEarlier: could not handle intervalSecs`);
+	}
+
+	if (intervalSecs > AWeekOfSecs || intervalSecs < 0) {
+		intervalSecs = AWeekOfSecs;
+	}
+
 	const earliestSecs = (earliestAfterSecs == 0)? Math.floor( Date.now() / 1000 ) : earliestAfterSecs;
 	const   beforeSecs = earliestSecs;
 	const    afterSecs = earliestSecs - intervalSecs;
