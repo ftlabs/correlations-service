@@ -58,14 +58,21 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 }
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
-	debug(`getAllEntityFacets: num entities=${Object.keys(entities).length}`);
-	const promises = Object.keys(entities).map(entity => {
-		return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
-			.catch( err => {
-				console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
-				return;
-			})
-		;
+	const entitiesList = Object.keys(entities);
+	debug(`getAllEntityFacets: num entities=${entitiesList.length}`);
+	const initialMillis = 100;
+	const spreadMillis = 5000; // spread out these fetches to try and avoid a node problem
+	const promises = entitiesList.map((entity,index) => {
+		const delay = (index / entitiesList.length) * spreadMillis;
+		// console.log(`getAllEntityFacets: initial promise: index=${index}, delay=${delay}`);
+		return new Promise( (resolve) => setTimeout(() => resolve(
+				fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
+				.catch( err => {
+					console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+					return;
+				})
+			), initialMillis + delay)
+		)
 	});
 
 	return Promise.all(promises)
