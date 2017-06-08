@@ -182,11 +182,14 @@ function updateUpdateTimes(afterSecs, beforeSecs){
 }
 
 function updateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
-	updateUpdateTimes(afterSecs, beforeSecs);
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities     => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
 		.then( entitiesAndFacets => updateAllCoocsAndEntities(entitiesAndFacets) )
+		.then( coocs => {
+			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
+			return coocs;
+		})
 		;
 }
 
