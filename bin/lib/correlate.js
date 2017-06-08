@@ -42,10 +42,6 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 					if (ontology !== ONTOLOGY) { return; }
 					facet.facetElements.forEach( element => {
 						const entity = `${ontology}:${element.name}`;
-						if (! knownEntities.hasOwnProperty(entity)) {
-							knownEntities[entity] = 0;
-						}
-						knownEntities[entity] = knownEntities[entity] + element.count;
 						deltaEntities[entity] = element.count;
 					});
 				});
@@ -88,15 +84,25 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 					}
 				}
 			}
-			return entityFacets;
+			return {
+				entities,
+				entityFacets,
+			};
 		})
 		;
 }
 
-function updateAllCoocs( entityFacets ) {
+function updateAllCoocsAndEntities( entitiesAndFacets ) {
+	const entityFacets = entitiesAndFacets.entityFacets;
+	const     entities = entitiesAndFacets.entities;
 	let countNewEntities = 0;
 
 	for( let entity of Object.keys( entityFacets ) ){
+		if (! knownEntities.hasOwnProperty(entity)) {
+			knownEntities[entity] = 0;
+		}
+		knownEntities[entity] = knownEntities[entity] + entities[entity];
+
 		if ( ! allCoocs.hasOwnProperty(entity)) {
 			allCoocs[entity] = {};
 			countNewEntities++;
@@ -111,7 +117,7 @@ function updateAllCoocs( entityFacets ) {
 			allCoocs[entity][coocEntity] = true;
 		}
 	}
-	debug(`updateAllCoocs: countNewEntities=${countNewEntities}`);
+	debug(`updateAllCoocsAndEntities: countNewEntities=${countNewEntities}`);
 	return allCoocs;
 }
 
@@ -179,8 +185,8 @@ function updateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
 	updateUpdateTimes(afterSecs, beforeSecs);
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
-		.then( deltaEntities => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
-		.then(  entityFacets => updateAllCoocs(entityFacets) )
+		.then( deltaEntities     => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
+		.then( entitiesAndFacets => updateAllCoocsAndEntities(entitiesAndFacets) )
 		;
 }
 
