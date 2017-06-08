@@ -60,21 +60,48 @@ function article(uuid) {
 	;
 }
 
+const MAX_ATTEMPTS = 5;
+
+function makeFetchAttempts(address, options, attempt = 0){
+  if(attempt < MAX_ATTEMPTS){
+    return new Promise( (resolve, reject) => {
+      fetch(address, options)
+      .then(res => {
+        if(res && res.ok){
+          return res;
+        } else {
+					console.log(`ERROR: makeFetchAttempts: res not fab: attempt=${attempt}, options=${JSON.stringify(options)}`);
+          makeFetchAttempts(address, options, attempt + 1)
+            .then(result => resolve(result))
+          ;
+        }
+      })
+      .then(res => resolve(res) )
+			.catch( err => {
+				console.log(`ERROR: makeFetchAttempts: catch: attempt=${attempt}, options=${JSON.stringify(options)}`);
+				makeFetchAttempts(address, options, attempt + 1)
+					.then(result => resolve(result))
+				;
+			})
+    })
+  } else {
+      return Promise.reject(`makeFetchAttempts: Request failed too many times(${MAX_ATTEMPTS})`);
+  }
+}
+
 function search(params) {
 	const sapiUrl = `${SAPI_PATH}?apiKey=${CAPI_KEY}`;
 	const sapiQuery = constructSAPIQuery( params );
-	debug(`search: sapiQuery=${JSON.stringify(sapiQuery)}`);
-
-	return fetch(sapiUrl, {
+	const options = {
 		 method: 'POST',
        body: JSON.stringify(sapiQuery),
 		headers: {
 			'Content-Type' : 'application/json',
-		},
-	})
-	.catch( err => {
-		console.log(`ERROR: search: fetch: err=${err}.`);
-	})
+		}
+	};
+	debug(`search: sapiQuery=${JSON.stringify(sapiQuery)}`);
+
+	return makeFetchAttempts(sapiUrl, options)
 	.then( res  => res.text() )
 	.then( text => {
 		let sapiObj;
@@ -91,6 +118,9 @@ function search(params) {
 			sapiObj
 		};
 	} )
+	.catch( err => {
+		console.log(`ERROR: search: err=${err}.`);
+	})
 	;
 }
 
