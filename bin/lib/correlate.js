@@ -51,6 +51,9 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 			logItem('getLatestEntitiesMentioned', { afterSecs: afterSecs, beforeSecs : beforeSecs, numResults: numResults, 'deltaEntities.length' : deltaEntities.length, deltaEntities: deltaEntities });
 			return deltaEntities
 		})
+		.catch( err => {
+			console.log( `getLatestEntitiesMentioned: err=${err}` );
+		})
 		;
 }
 
@@ -58,6 +61,11 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	debug(`getAllEntityFacets: num entities=${Object.keys(entities).length}`);
 	const promises = Object.keys(entities).map(entity => {
 		return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
+			.catch( err => {
+				console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+				return;
+			})
+		;
 	});
 
 	return Promise.all(promises)

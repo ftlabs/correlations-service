@@ -1,4 +1,4 @@
-const  dotenv = require('dotenv').config();
+const  dotenv = require('dotenv').config({ silent : process.env.NODE_ENVIRONMENT === 'production'  });
 const   debug = require('debug')('correlations:index');
 const express = require('express');
 const    path = require('path');
@@ -133,6 +133,9 @@ if (startupRangeSecs > 0) {
 	.then( summaryData => {
 		debug(`for startupRangeSecs=${startupRangeSecs}, summaryData: ${JSON.stringify(summaryData, null, 2)}`);
 		startListening();
+	})
+	.catch( err => {
+		console.log( `startup: err=${err}`);
 	})
 } else {
 	startListening();
