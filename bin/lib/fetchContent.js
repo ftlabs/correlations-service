@@ -72,15 +72,23 @@ function search(params) {
 			'Content-Type' : 'application/json',
 		},
 	})
+	.catch( err => {
+		console.log(`ERROR: search: fetch: err=${err}.`);
+	})
 	.then( res  => res.text() )
 	.then( text => {
-		debug(`search: res.text=${text}`);
-		return text;
-	})
-	.then( text => {
+		let sapiObj;
+		try {
+		 	sapiObj = JSON.parse(text);
+		}
+		catch( e ){
+			console.log(`ERROR: search: e=${e},
+				text=${text},
+				params=${params}`);
+		}
 		return {
-			params : params,
-			sapiObj : JSON.parse(text)
+			params,
+			sapiObj
 		};
 	} )
 	;
