@@ -129,10 +129,10 @@ function startListening(){
 
 let startupRangeSecs = process.env.STARTUP_RANGE_SECS;
 if (startupRangeSecs > 0) {
-  console.log(`updateCorrelationsEarlier: startupRangeSecs=${startupRangeSecs}`);
+  console.log(`startup: startupRangeSecs=${startupRangeSecs}`);
 	correlate.updateCorrelationsEarlier(startupRangeSecs)
 	.then( summaryData => {
-		debug(`for startupRangeSecs=${startupRangeSecs}, summaryData: ${JSON.stringify(summaryData, null, 2)}`);
+		console.log(`startup: updateCorrelationsEarlier: summaryData: ${JSON.stringify(summaryData, null, 2)}`);
 		startListening();
 	})
 	.catch( err => {
@@ -153,7 +153,7 @@ function updateEverySoOften(count=0){
     setTimeout(() => {
       console.log(`updateEverySoOften: count=${count}, UPDATE_EVERY_SECS=${updateEverySecs}`);
       correlate.updateCorrelationsLatest()
-      .then(obj => console.log(`updateEverySoOften: updateCorrelationsLatest: ${JSON.stringify(obj)}`) )
+      .then(summaryData => console.log(`updateEverySoOften: updateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
       .then( () => updateEverySoOften(count+1) )
       ;
     }, updateEveryMillis);
