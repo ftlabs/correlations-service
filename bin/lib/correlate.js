@@ -381,13 +381,23 @@ function getAllData(){
 	return data;
 }
 
+function getIslandOfEntity(entity){
+	if (!entity || ! allIslandsByEntity.hasOwnProperty(entity)) {
+		return {};
+	} else {
+		return allIslandsByEntity[entity];
+	}
+}
+
 module.exports = {
 	updateCorrelationsLatest,
 	updateCorrelationsEarlier,
 	knownEntities,
-	allCoocs : function(){return allCoocs;},
-	allData : getAllData,
-	logbook : logbook,
+	getIslandOfEntity,
 	calcChainBetween,
 	calcChainLengthsFrom,
+	  allCoocs : function(){return allCoocs;},
+	   allData : getAllData,
+	allIslands : function(){return allIslands;},
+	   logbook : logbook,
 };

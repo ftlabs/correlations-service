@@ -107,6 +107,17 @@ app.get('/allData', (req, res) => {
 	res.json( correlate.allData() );
 });
 
+app.get('/allIslands', (req, res) => {
+	res.json( correlate.allIslands() );
+});
+
+app.get('/islandOf/:entity', (req, res) => {
+	res.json( {
+		entity: req.params.entity,
+		island: correlate.getIslandOfEntity(req.params.entity)
+	} );
+});
+
 app.get('/logbook', (req, res) => {
 	res.json( correlate.logbook.reverse() );
 });
