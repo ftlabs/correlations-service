@@ -123,12 +123,13 @@ app.get('/calcChainLengthsFrom/:entity', (req, res) => {
 
 function startListening(){
 	app.listen(process.env.PORT, function(){
-		debug('Server is listening on port', process.env.PORT);
+		console.log('Server is listening on port', process.env.PORT);
 	});
 }
 
 let startupRangeSecs = process.env.STARTUP_RANGE_SECS;
 if (startupRangeSecs > 0) {
+  console.log(`updateCorrelationsEarlier: startupRangeSecs=${startupRangeSecs}`);
 	correlate.updateCorrelationsEarlier(startupRangeSecs)
 	.then( summaryData => {
 		debug(`for startupRangeSecs=${startupRangeSecs}, summaryData: ${JSON.stringify(summaryData, null, 2)}`);
@@ -141,3 +142,22 @@ if (startupRangeSecs > 0) {
 } else {
 	startListening();
 }
+
+//---
+
+function updateEverySoOften(count=0){
+  let updateEverySecs = process.env.UPDATE_EVERY_SECS;
+  let updateEveryMillis = ((updateEverySecs == '')? 0 : parseInt(updateEverySecs)) * 1000;
+  if (updateEveryMillis > 0) {
+    console.log(`updateEverySoOften: next update in ${updateEverySecs} secs.`);
+    setTimeout(() => {
+      console.log(`updateEverySoOften: count=${count}, UPDATE_EVERY_SECS=${updateEverySecs}`);
+      correlate.updateCorrelationsLatest()
+      .then(obj => console.log(`updateEverySoOften: updateCorrelationsLatest: ${JSON.stringify(obj)}`) )
+      .then( () => updateEverySoOften(count+1) )
+      ;
+    }, updateEveryMillis);
+  }
+}
+
+updateEverySoOften();
