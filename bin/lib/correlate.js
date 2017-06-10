@@ -64,7 +64,6 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const spreadMillis = 5000; // spread out these fetches to try and avoid a node problem
 	const promises = entitiesList.map((entity,index) => {
 		const delay = (index / entitiesList.length) * spreadMillis;
-		// console.log(`getAllEntityFacets: initial promise: index=${index}, delay=${delay}`);
 		return new Promise( (resolve) => setTimeout(() => resolve(
 				fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
 				.catch( err => {
@@ -259,8 +258,6 @@ function findLinks(chainSoFar, bestChain, targetEntity){
 	const     latest = chainSoFar[chainSoFar.length -1];
 	const candidates = Object.keys( allCoocs[latest] );
 
-	// debug(`findLinks: latest=${latest}, candidates=${JSON.stringify(candidates)}, chainSoFar=${JSON.stringify(chainSoFar)}, targetEntity=${targetEntity}`);
-
 	for( let candidate of candidates){
 		if (candidate == targetEntity) {
 			return chainSoFar.concat([candidate]);
@@ -306,6 +303,61 @@ function calcChainBetween(entity1, entity2) {
 		chain,
 	}
 }
+
+function calcChainWithArticlesBetween(entity1, entity2) {
+	const chainDetails = calcChainBetween(entity1, entity2);
+
+	chainDetails['articlesPerLink'] = [];
+
+	// create a promise for each link in the chain,
+	// to search for article titles where both entities in the link co-occur.
+	// The promises are spread out in time to avoid breaking node.
+
+	const spreadMillis = 100;
+	let promises = [];
+	chainDetails.chain.forEach((entity,index) => {
+		if (index == 0) { return; }
+		const prevEntity = chainDetails.chain[index - 1];
+		const delay = (index / chainDetails.chain.length) * spreadMillis;
+		const promise = new Promise( (resolve) => setTimeout(() => resolve(
+				fetchContent.searchUnixTimeRange(earliestAfterSecs, latestBeforeSecs, { constraints : [prevEntity, entity], maxResults : 100,})
+				.catch( err => {
+					console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+					return;
+				})
+			), delay)
+		);
+		promises.push( promise );
+	});
+
+	// process each search result to get the list of titles for each link
+
+	return Promise.all(promises)
+	.then( searchResponses => searchResponses.map(sr => {return sr.sapiObj}) )
+	.then( sapiObjs => {
+		chainDetails['articlesPerLink'] = sapiObjs.map(sapiObj => {
+			let articles = [];
+			if (! sapiObj.results ) {
+				debug('calcChainWithArticlesBetween: sapiObj: no results');
+			} else if( ! sapiObj.results[0] ) {
+				debug('calcChainWithArticlesBetween: sapiObj: no results[0]');
+			} else if( ! sapiObj.results[0].results ) {
+				debug('calcChainWithArticlesBetween: sapiObj: no results[0].results');
+			} else {
+				articles = sapiObj.results[0].results.map(result => {
+					return {
+						id    : result.id,
+						title : result.title.title,
+					};
+				})
+			}
+			return articles;
+		});
+	})
+	.then( () => chainDetails )
+	;
+}
+
 
 function findAllChainLengths(rootEntity){
 	const chainLengths = [{
@@ -396,6 +448,7 @@ module.exports = {
 	getIslandOfEntity,
 	calcChainBetween,
 	calcChainLengthsFrom,
+	calcChainWithArticlesBetween,
 	  allCoocs : function(){return allCoocs;},
 	   allData : getAllData,
 	allIslands : function(){return allIslands;},

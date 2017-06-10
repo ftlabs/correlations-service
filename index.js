@@ -130,6 +130,12 @@ app.get('/calcChainLengthsFrom/:entity', (req, res) => {
 	res.json( correlate.calcChainLengthsFrom(req.params.entity) );
 });
 
+app.get('/calcChainWithArticlesBetween/:entity1/:entity2', (req, res) => {
+	correlate.calcChainWithArticlesBetween(req.params.entity1, req.params.entity2)
+  .then( obj => res.json( obj ) )
+  ;
+});
+
 //---
 
 function startListening(){
