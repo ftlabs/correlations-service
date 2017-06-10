@@ -32,11 +32,11 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 			const deltaEntities = {};
 			let numResults;
 			if (! sapiObj.results ) {
-				debug('updateCorrelations: no results');
+				debug('getLatestEntitiesMentioned: no results');
 			} else if( ! sapiObj.results[0] ) {
-				debug('updateCorrelations: no results[0]');
+				debug('getLatestEntitiesMentioned: no results[0]');
 			} else if( ! sapiObj.results[0].facets ) {
-				debug('updateCorrelations: no results[0].facets');
+				debug('getLatestEntitiesMentioned: no results[0].facets');
 			} else {
 				numResults = sapiObj.results[0].indexCount;
 				sapiObj.results[0].facets.forEach( facet => {
@@ -197,7 +197,7 @@ function updateUpdateTimes(afterSecs, beforeSecs){
 	}
 }
 
-function updateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
+function fetchUpdateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities     => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
@@ -209,8 +209,8 @@ function updateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
 		;
 }
 
-function updateCorrelations(afterSecs, beforeSecs) {
-	return updateCorrelationsToAllCoocs(afterSecs, beforeSecs)
+function fetchUpdateCorrelations(afterSecs, beforeSecs) {
+	return fetchUpdateCorrelationsToAllCoocs(afterSecs, beforeSecs)
 		.then(         coocs => findIslands(coocs) )
 		.then( islands => {
 			allIslands = islands;
@@ -221,19 +221,19 @@ function updateCorrelations(afterSecs, beforeSecs) {
 		;
 }
 
-function updateCorrelationsLatest() {
+function fetchUpdateCorrelationsLatest() {
 	const    nowSecs = Math.floor( Date.now() / 1000 );
 	const beforeSecs = nowSecs;
 	const  afterSecs = (latestBeforeSecs == 0)? nowSecs - 3600 : latestBeforeSecs;
 
-	return updateCorrelations(afterSecs, beforeSecs);
+	return fetchUpdateCorrelations(afterSecs, beforeSecs);
 }
 
-function updateCorrelationsEarlier(intervalSecs=0) {
+function fetchUpdateCorrelationsEarlier(intervalSecs=0) {
 	if (typeof intervalSecs == 'string') {
 		intervalSecs = parseInt(intervalSecs);
 	} else if (typeof intervalSecs != 'number') {
-		throw new Error(`updateCorrelationsEarlier: could not handle intervalSecs`);
+		throw new Error(`fetchUpdateCorrelationsEarlier: could not handle intervalSecs`);
 	}
 
 	if (intervalSecs > AWeekOfSecs || intervalSecs < 0) {
@@ -244,7 +244,7 @@ function updateCorrelationsEarlier(intervalSecs=0) {
 	const   beforeSecs = earliestSecs;
 	const    afterSecs = earliestSecs - intervalSecs;
 
-	return updateCorrelations(afterSecs, beforeSecs);
+	return fetchUpdateCorrelations(afterSecs, beforeSecs);
 }
 
 
@@ -304,7 +304,7 @@ function calcChainBetween(entity1, entity2) {
 	}
 }
 
-function calcChainWithArticlesBetween(entity1, entity2) {
+function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 	const chainDetails = calcChainBetween(entity1, entity2);
 
 	chainDetails['articlesPerLink'] = [];
@@ -338,11 +338,11 @@ function calcChainWithArticlesBetween(entity1, entity2) {
 		chainDetails['articlesPerLink'] = sapiObjs.map(sapiObj => {
 			let articles = [];
 			if (! sapiObj.results ) {
-				debug('calcChainWithArticlesBetween: sapiObj: no results');
+				debug('fetchCalcChainWithArticlesBetween: sapiObj: no results');
 			} else if( ! sapiObj.results[0] ) {
-				debug('calcChainWithArticlesBetween: sapiObj: no results[0]');
+				debug('fetchCalcChainWithArticlesBetween: sapiObj: no results[0]');
 			} else if( ! sapiObj.results[0].results ) {
-				debug('calcChainWithArticlesBetween: sapiObj: no results[0].results');
+				debug('fetchCalcChainWithArticlesBetween: sapiObj: no results[0].results');
 			} else {
 				articles = sapiObj.results[0].results.map(result => {
 					return {
@@ -442,15 +442,15 @@ function getIslandOfEntity(entity){
 }
 
 module.exports = {
-	updateCorrelationsLatest,
-	updateCorrelationsEarlier,
+	fetchUpdateCorrelationsLatest,
+	fetchUpdateCorrelationsEarlier,
 	knownEntities,
 	getIslandOfEntity,
 	calcChainBetween,
 	calcChainLengthsFrom,
-	calcChainWithArticlesBetween,
-	  allCoocs : function(){return allCoocs;},
-	   allData : getAllData,
+	fetchCalcChainWithArticlesBetween,
+	allCoocs   : function(){return allCoocs;},
+	allData    : getAllData,
 	allIslands : function(){return allIslands;},
-	   logbook : logbook,
+	logbook    : logbook,
 };

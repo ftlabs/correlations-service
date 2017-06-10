@@ -90,12 +90,12 @@ app.get('/searchLastSeconds/:seconds/:entity1/:entity2', (req, res) => {
 });
 
 app.get('/updateCorrelations', (req, res) => {
-	correlate.updateCorrelationsLatest()
+	correlate.fetchUpdateCorrelationsLatest()
 	.then( obj => res.json( obj ) );
 });
 
 app.get('/updateCorrelationsEarlier/:seconds', (req, res) => {
-	correlate.updateCorrelationsEarlier(req.params.seconds)
+	correlate.fetchUpdateCorrelationsEarlier(req.params.seconds)
 	.then( obj => res.json( obj ) );
 });
 
@@ -131,7 +131,7 @@ app.get('/calcChainLengthsFrom/:entity', (req, res) => {
 });
 
 app.get('/calcChainWithArticlesBetween/:entity1/:entity2', (req, res) => {
-	correlate.calcChainWithArticlesBetween(req.params.entity1, req.params.entity2)
+	correlate.fetchCalcChainWithArticlesBetween(req.params.entity1, req.params.entity2)
   .then( obj => res.json( obj ) )
   ;
 });
@@ -147,9 +147,9 @@ function startListening(){
 let startupRangeSecs = process.env.STARTUP_RANGE_SECS;
 if (startupRangeSecs > 0) {
   console.log(`startup: startupRangeSecs=${startupRangeSecs}`);
-	correlate.updateCorrelationsEarlier(startupRangeSecs)
+	correlate.fetchUpdateCorrelationsEarlier(startupRangeSecs)
 	.then( summaryData => {
-		console.log(`startup: updateCorrelationsEarlier: summaryData: ${JSON.stringify(summaryData, null, 2)}`);
+		console.log(`startup: fetchUpdateCorrelationsEarlier: summaryData: ${JSON.stringify(summaryData, null, 2)}`);
 		startListening();
 	})
 	.catch( err => {
@@ -169,8 +169,8 @@ function updateEverySoOften(count=0){
     console.log(`updateEverySoOften: next update in ${updateEverySecs} secs.`);
     setTimeout(() => {
       console.log(`updateEverySoOften: count=${count}, UPDATE_EVERY_SECS=${updateEverySecs}`);
-      correlate.updateCorrelationsLatest()
-      .then(summaryData => console.log(`updateEverySoOften: updateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
+      correlate.fetchUpdateCorrelationsLatest()
+      .then(summaryData => console.log(`updateEverySoOften: fetchUpdateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
       .then( () => updateEverySoOften(count+1) )
       ;
     }, updateEveryMillis);
