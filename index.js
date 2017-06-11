@@ -107,6 +107,10 @@ app.get('/allData', (req, res) => {
 	res.json( correlate.allData() );
 });
 
+app.get('/summary', (req, res) => {
+	res.json( correlate.summary() );
+});
+
 app.get('/allIslands', (req, res) => {
 	res.json( correlate.allIslands() );
 });

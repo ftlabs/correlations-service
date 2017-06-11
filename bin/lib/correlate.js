@@ -452,5 +452,6 @@ module.exports = {
 	allCoocs   : function(){return allCoocs;},
 	allData    : getAllData,
 	allIslands : function(){return allIslands;},
+	summary    : getSummaryData,
 	logbook    : logbook,
 };
