@@ -127,6 +127,8 @@ function updateAllCoocsAndEntities( entitiesAndFacets ) {
 		}
 		const coocs = entityFacets[entity];
 		for( let coocEntity of coocs){
+			if (entity == coocEntity) { continue; }
+
 			if ( ! allCoocs.hasOwnProperty(coocEntity)) {
 				allCoocs[coocEntity] = {};
 			}
@@ -441,7 +443,7 @@ function calcChainLengthsFrom(rootEntity){
 
 function countAllCoocPairs(){
 	let count = 0;
-	Object.keys(allCoocs).forEach( coocs => { count = count + Object.keys(coocs).length; });
+	Object.keys(allCoocs).forEach( entity => { count = count + Object.keys(allCoocs[entity]).length; });
 	return count/2;
 }
 
