@@ -112,29 +112,40 @@ function updateAllCoocsAndEntities( entitiesAndFacets ) {
 	const entityFacets = entitiesAndFacets.entityFacets;
 	const     entities = entitiesAndFacets.entities;
 	let countNewEntities = 0;
+	let countNewCoocPairs = 0;
+	let countCoocPairs = 0;
 
 	for( let entity of Object.keys( entityFacets ) ){
 		if (! knownEntities.hasOwnProperty(entity)) {
 			knownEntities[entity] = 0;
+			countNewEntities++;
 		}
 		knownEntities[entity] = knownEntities[entity] + entities[entity];
 
 		if ( ! allCoocs.hasOwnProperty(entity)) {
 			allCoocs[entity] = {};
-			countNewEntities++;
 		}
 		const coocs = entityFacets[entity];
 		for( let coocEntity of coocs){
 			if ( ! allCoocs.hasOwnProperty(coocEntity)) {
 				allCoocs[coocEntity] = {};
-				countNewEntities++;
 			}
+
+			if (! allCoocs[entity].hasOwnProperty(coocEntity)) {
+				countNewCoocPairs++;
+			}
+			countCoocPairs++;
+
 			allCoocs[coocEntity][entity] = true;
 			allCoocs[entity][coocEntity] = true;
 		}
 	}
 	debug(`updateAllCoocsAndEntities: countNewEntities=${countNewEntities}`);
-	return allCoocs;
+	return {
+		countNewEntities,
+		countNewCoocPairs,
+		countCoocPairs,
+	};
 }
 
 function compareLengthsLongestFirst(a,b){
@@ -209,7 +220,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		.then( deltaEntities     => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
 		.then( entitiesAndFacets => {
 			const endFacetSearchesMillis = Date.now();
-			updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
+			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
 			// post-processing: re-calc all the islands, and link entities to them
 			allIslands = findIslands(allCoocs);
@@ -229,6 +240,9 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 				},
 				counts : {
 					numDeltaEntities,
+					newEntities : newCounts.countNewEntities,
+					coocPairs : newCounts.countCoocPairs,
+					newCoocPairs : newCounts.countNewCoocPairs,
 					numSapiRequests : numDeltaEntities + 1,
 				},
 				timings : {
@@ -425,6 +439,12 @@ function calcChainLengthsFrom(rootEntity){
 	}
 }
 
+function countAllCoocPairs(){
+	let count = 0;
+	Object.keys(allCoocs).forEach( coocs => { count = count + Object.keys(coocs).length; });
+	return count/2;
+}
+
 function getSummaryData(){
 	const largestIslandSize = (allIslands.length == 0)? 0 : Object.keys(allIslands[0]).length;
 	return {
@@ -441,6 +461,7 @@ function getSummaryData(){
 			knownEntities : Object.keys(knownEntities).length,
 			allIslands : allIslands.length,
 			largestIslandSize: largestIslandSize,
+			numDistinctCoocPairs : countAllCoocPairs(),
 		},
 	};
 }
