@@ -115,6 +115,10 @@ app.get('/allIslands', (req, res) => {
 	res.json( correlate.allIslands() );
 });
 
+app.get('/allEntities', (req, res) => {
+	res.json( correlate.allEntities() );
+});
+
 app.get('/islandOf/:entity', (req, res) => {
 	res.json( {
 		entity: req.params.entity,
