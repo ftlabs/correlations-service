@@ -197,27 +197,49 @@ function updateUpdateTimes(afterSecs, beforeSecs){
 	}
 }
 
-function fetchUpdateCorrelationsToAllCoocs(afterSecs, beforeSecs) {
-
-	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
-		.then( deltaEntities     => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
-		.then( entitiesAndFacets => updateAllCoocsAndEntities(entitiesAndFacets) )
-		.then( coocs => {
-			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
-			return coocs;
-		})
-		;
-}
-
+// tie together the fetching of new data, and the post-processing of it
 function fetchUpdateCorrelations(afterSecs, beforeSecs) {
-	return fetchUpdateCorrelationsToAllCoocs(afterSecs, beforeSecs)
-		.then(         coocs => findIslands(coocs) )
-		.then( islands => {
-			allIslands = islands;
-			return islands;
+	const startInitialSearchMillis = Date.now();
+	let startFacetSearchesMillis;
+	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
+		.then( deltaEntities => {
+			startFacetSearchesMillis = Date.now();
+			return deltaEntities;
+		} )
+		.then( deltaEntities     => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
+		.then( entitiesAndFacets => {
+			const endFacetSearchesMillis = Date.now();
+			updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
+			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
+			// post-processing: re-calc all the islands, and link entities to them
+			allIslands = findIslands(allCoocs);
+			linkKnownEntitiesToAllIslands();
+			const endPostProcessingMillis = Date.now();
+			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
+
+			const summaryData = getSummaryData();
+			summaryData['delta'] = {
+				times : {
+					afterSecs,
+					afterSecs           : new Date(afterSecs * 1000).toISOString(),
+					beforeSecs,
+					beforeSecs          : new Date( beforeSecs * 1000).toISOString(),
+				  intervalCoveredSecs : (beforeSecs - afterSecs),
+					intervalCoveredHrs  : (beforeSecs - afterSecs)/3600,
+				},
+				counts : {
+					numDeltaEntities,
+					numSapiRequests : numDeltaEntities + 1,
+				},
+				timings : {
+					initialSearchMillis  : (startFacetSearchesMillis - startInitialSearchMillis),
+					facetSearchesMillis  : (endFacetSearchesMillis - startFacetSearchesMillis),
+					millisPerFacetSearch : Math.round((endFacetSearchesMillis - startFacetSearchesMillis) / ((numDeltaEntities==0)? 1 : numDeltaEntities)),
+					postProcessingMillis : (endPostProcessingMillis - endFacetSearchesMillis)
+				}
+			};
+			return summaryData;
 		})
-		.then( islands => linkKnownEntitiesToAllIslands() )
-		.then( islandsByEntity => getSummaryData() )
 		;
 }
 
