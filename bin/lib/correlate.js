@@ -441,6 +441,45 @@ function calcChainLengthsFrom(rootEntity){
 	}
 }
 
+function calcSoNearliesOnMainIsland(){
+	let soNearlies = [];
+
+	if( allIslands.length > 0 ){
+		const knownIslanderPairs = {};
+		const islanders = Object.keys( allIslands[0] );
+		for( let entity1 of islanders ){
+			const entity1Coocs = allCoocs[entity1];
+			for( let entity2 of islanders ){
+				if( entity1 == entity2 ){ continue; }
+				if(entity1Coocs.hasOwnProperty(entity2)){ continue; }
+				const islanderPair = [entity1, entity2].sort().join('');
+				if( knownIslanderPairs[islanderPair]){
+					continue;
+				} else {
+					knownIslanderPairs[islanderPair] = true;
+				}
+				const intersection = Object.keys(allCoocs[entity2]).filter(e => {return entity1Coocs[e]});
+				if (intersection.length > 0) {
+					soNearlies.push({
+						entity1,
+						entity2,
+						intersectionList : intersection,
+						intersectionSize : intersection.length,
+					});
+				}
+			}
+		}
+	}
+
+	soNearlies.sort( (a,b) => {
+		if      (a.intersectionSize < b.intersectionSize) { return +1; }
+		else if (a.intersectionSize > b.intersectionSize) { return -1; }
+		else                                              { return  0; }
+	})
+
+	return soNearlies;
+}
+
 function countAllCoocPairs(){
 	let count = 0;
 	Object.keys(allCoocs).forEach( entity => { count = count + Object.keys(allCoocs[entity]).length; });
@@ -494,6 +533,7 @@ module.exports = {
 	calcChainBetween,
 	calcChainLengthsFrom,
 	fetchCalcChainWithArticlesBetween,
+	calcSoNearliesOnMainIsland,
 	allCoocs    : function(){ return allCoocs; },
 	allData     : getAllData,
 	allEntities : function(){ return Object.keys( knownEntities ).sort(); },

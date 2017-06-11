@@ -144,6 +144,10 @@ app.get('/calcChainWithArticlesBetween/:entity1/:entity2', (req, res) => {
   ;
 });
 
+app.get('/calcSoNearliesOnMainIsland', (req, res) => {
+	res.json( correlate.calcSoNearliesOnMainIsland() );
+});
+
 //---
 
 function startListening(){
