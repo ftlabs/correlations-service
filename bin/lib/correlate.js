@@ -459,6 +459,7 @@ function calcSoNearliesOnMainIsland(){
 					knownIslanderPairs[islanderPair] = true;
 				}
 				const intersection = Object.keys(allCoocs[entity2]).filter(e => {return entity1Coocs[e]});
+				intersection.sort();
 				if (intersection.length > 0) {
 					soNearlies.push({
 						entity1,
