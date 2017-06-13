@@ -148,6 +148,14 @@ app.get('/calcSoNearliesOnMainIsland', (req, res) => {
 	res.json( correlate.calcSoNearliesOnMainIsland() );
 });
 
+app.get('/calcMostBetweenSoNearliesOnMainIsland', (req, res) => {
+	res.json( correlate.calcMostBetweenSoNearliesOnMainIsland() );
+});
+
+app.get('/calcMostBetweenSoNearliesOnMainIsland/:sortBy', (req, res) => {
+	res.json( correlate.calcMostBetweenSoNearliesOnMainIsland(req.params.sortBy) );
+});
+
 //---
 
 function startListening(){

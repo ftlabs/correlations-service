@@ -481,6 +481,44 @@ function calcSoNearliesOnMainIsland(){
 	return soNearlies;
 }
 
+// count how many times each entity appears in the intersection list of the soNearlies
+function calcMostBetweenSoNearliesOnMainIsland(sortBy=0){
+	const maxSortBy = 2;
+	if( sortBy < 0        ) { sortBy = 0; }
+	if( sortBy > maxSortBy) { sortBy = maxSortBy; }
+
+	let soNearlies = calcSoNearliesOnMainIsland();
+	const middleEntityCounts = {};
+
+	soNearlies.forEach( sn => {
+		sn.intersectionList.forEach( entity => {
+			if (! middleEntityCounts.hasOwnProperty(entity)) {
+				middleEntityCounts[entity] = [0,0,0];
+			}
+			middleEntityCounts[entity][0] = middleEntityCounts[entity][0] + 1;
+			middleEntityCounts[entity][1] = middleEntityCounts[entity][1] + (1/sn.intersectionList.length);
+			middleEntityCounts[entity][2] = middleEntityCounts[entity][2] + (1/(sn.intersectionList.length*sn.intersectionList.length));
+		})
+	});
+
+	let middleEntityCountsList = Object.keys(middleEntityCounts).map(entity => {
+		return [
+			entity,
+			middleEntityCounts[entity]
+		];
+	});
+
+	middleEntityCountsList.sort( (a,b) => {
+		if      (a[1][sortBy] > b[1][sortBy]) { return -1; }
+		else if (a[1][sortBy] < b[1][sortBy]) { return +1; }
+		else                  { return  0; }
+	});
+	return {
+			'description' : 'looking at entities appear most often in the soNearlies intersections, i.e. are shared connections of entities who otherwise have to shared connections with each other. [count (1 per soNearly intersection), count (divided by length of intersection), count (divided by square of length)]',
+			middleEntityCountsList
+		};
+}
+
 function countAllCoocPairs(){
 	let count = 0;
 	Object.keys(allCoocs).forEach( entity => { count = count + Object.keys(allCoocs[entity]).length; });
@@ -535,6 +573,7 @@ module.exports = {
 	calcChainLengthsFrom,
 	fetchCalcChainWithArticlesBetween,
 	calcSoNearliesOnMainIsland,
+	calcMostBetweenSoNearliesOnMainIsland,
 	allCoocs    : function(){ return allCoocs; },
 	allData     : getAllData,
 	allEntities : function(){ return Object.keys( knownEntities ).sort(); },
