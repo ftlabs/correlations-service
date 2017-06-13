@@ -1,0 +1,80 @@
+<h1>FTLabs: exploring correlations between {{ontology}} named in articles</h1>
+
+<p>Based on Slurp, an app written 2 years ago to explore all correlations of entities named in FT articles
+  (which drove <a href="https://labs.ft.com/2015/07/six-degrees-of-angela-merkel/">Six Degrees of Angela Merkel</a>)
+  this app (codenamed 'Lick', aka Slurp-lite) looks at correlations of just the {{ontology}} named in articles,
+  particularly to support the Merkel Chain idea from the original project (when the ontology is people). It is a full rewrite (in Node) from the original (in Ruby + S3 buckets).</p>
+
+<p>Two {{ontology}} entities are 'correlated' if they are both named metadata entities in the same FT article.</p>
+
+<p>Using the idea of 'six degrees of Kevin Bacon', with films replaced by FT articles,
+  we can connect entities together or create a measure of the 'distance' between them.
+  The concept of an 'island' (below) is a set of entities who can be connected together by a series of correlations.</p>
+
+<p>The data is loaded into the app via SAPI requests.</p>
+
+<h2>Endpoints (NB, all behind SSO. Will be tokenized later.)</h2>
+
+<ul>
+  <li>/islandOf/:entity</li>
+  <ul>
+    <li>e.g., <a href="/islandOf/{{entity1}}" />everyone on {{entity1}}'s island</a></li>
+  </ul>
+  <li>/calcChainBetween/:entity1/:entity2</li>
+  <ul>
+    <li>e.g., <a href="/calcChainBetween/{{entity1}}/{{entity2}}" />chain between {{entity1}} and {{entity2}}</a></li>
+  </ul>
+  <li>/calcChainWithArticlesBetween/:entity1/:entity2</li>
+  <ul>
+    <li>e.g., <a href="/calcChainWithArticlesBetween/{{entity1}}/{{entity2}}" />chain between {{entity1}} and {{entity2}}, including the articles where each link pair co-occurs</a></li>
+  </ul>
+  <li>/calcChainLengthsFrom/:entity</li>
+  <ul>
+    <li>e.g., <a href="/calcChainLengthsFrom/{{entity1}}" />how far is every other entity (on the same island) from {{entity1}}</a></li>
+    <li>e.g., <a href="/calcChainLengthsFrom/{{entity2}}" />how far is every other entity (on the same island) from {{entity2}}</a></li>
+  </ul>
+  <li>/calcSoNearliesOnMainIsland</li>
+  <ul>
+    <li><a href="/calcSoNearliesOnMainIsland" />which pairs never meet, but have the biggest overlap of coocs?</a></li>
+    <li><a href="/calcMostBetweenSoNearliesOnMainIsland" />which entities appear most often in the soNearlies intersections?</a></li>
+    <li><a href="/calcMostBetweenSoNearliesOnMainIsland/1" />which entities appear most often in the soNearlies intersections (increasing prominence of small intersection sets)?</a></li>
+  </ul>
+  <li>/all...</li>
+  <ul>
+    <li><a href="/allCoocs" />/allCoocs</a> - for each entity: who is directly correlated? (i.e. appears in same article as them).</li>
+    <li><a href="/allData" />/allData</a></li>
+    <li><a href="/allEntities" />/allEntities</a></li>
+    <li><a href="/allIslands" />/allIslands</a> - sets of entities who can be connected together by a series of correlations.</li>
+    <li><a href="/summary" />/summary</a> - stats of data</li>
+  </ul>
+  <li>updates</li>
+  <ul>
+    <li>e.g., <a href="/updateCorrelations" />latest correlations (since last update)</a></li>
+    <li>e.g., <a href="/updateCorrelationsEarlier/36000" />earlier correlations (from before prev updates)</a></li>
+  </ul>
+  <li><a href="/logbook" />/logbook</a></li>
+  <li>test and search endpoints</li>
+  <ul>
+    <li><a href="/dummy" />/dummy</a></li>
+    <li>/article/:UUID</li>
+    <ul>
+      <li>e.g., <a href="/article/d8c72fd4-49c4-11e7-a3f4-c742b9791d43" />d8c72fd4-49c4-11e7-a3f4-c742b9791d43</a></li>
+    </ul>
+    <li>/searchByUUID/:UUID</li>
+    <ul>
+      <li>e.g., <a href="/searchByUUID/d8c72fd4-49c4-11e7-a3f4-c742b9791d43" />d8c72fd4-49c4-11e7-a3f4-c742b9791d43</a></li>
+    </ul>
+    <li>/searchLastSeconds/:SECONDS</li>
+    <ul>
+      <li>e.g., <a href="/searchLastSeconds/3600" />last hour</a></li>
+    </ul>
+    <li>/searchLastSeconds/:SECONDS/:ENTITY</li>
+    <ul>
+      <li>e.g., <a href="/searchLastSeconds/36000/{{entity1}}" />last hour, {{entity1}}</a></li>
+    </ul>
+    <li>/searchLastSeconds/:SECONDS/:ENTITY1/:ENTITY2</li>
+    <ul>
+      <li>e.g., <a href="/searchLastSeconds/36000/{{entity1}}/{{entity1a}}" />last 10 hours, {{entity1}}, {{entity1a}}</a></li>
+    </ul>
+  </ul>
+</ul>

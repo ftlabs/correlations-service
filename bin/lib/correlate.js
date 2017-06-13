@@ -580,4 +580,5 @@ module.exports = {
 	allIslands  : function(){ return allIslands; },
 	summary     : getSummaryData,
 	logbook     : logbook,
+	ontology    : function() { return ONTOLOGY; },
 };
