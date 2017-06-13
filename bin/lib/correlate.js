@@ -13,6 +13,10 @@ let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 let  latestBeforeSecs = 0; // most recent update time
 let earliestAfterSecs = 0; // oldest update time
 
+const ignoreEntities = {
+	'topics:Audio articles' : true,
+};
+
 const AWeekOfSecs = 604800;
 
 const logbook = [];
@@ -58,7 +62,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 }
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
-	const entitiesList = Object.keys(entities);
+	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
 	debug(`getAllEntityFacets: num entities=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
 	const initialMillis = 100;
 	const spreadMillis = 5000; // spread out these fetches to try and avoid a node problem
@@ -95,6 +99,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 						for( let element of facet.facetElements) {
 							const entity = `${ontology}:${element.name}`;
 							if( entity == targetEntity ) { continue; }
+							if( ignoreEntities[entity] ) { continue; }
 							entityFacets[targetEntity].push(entity);
 						}
 					}
