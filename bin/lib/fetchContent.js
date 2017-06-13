@@ -14,6 +14,16 @@ if (! CAPI_KEY ) {
 const CAPI_PATH = 'http://api.ft.com/enrichedcontent/';
 const SAPI_PATH = 'http://api.ft.com/content/search/v1';
 
+const EntityRegex = /^([a-z]+):(.+)$/;
+function rephraseEntityForQueryString(item){
+	const match = EntityRegex.exec(item);
+	if (match) {
+		return match[1] + ':\"' + match[2] + '\"';
+	} else {
+		return item;
+	}
+}
+
 function constructSAPIQuery( params ) {
 
 	const defaults = {
@@ -29,7 +39,11 @@ function constructSAPIQuery( params ) {
 
 	let queryString = combined.queryString;
 	if (queryString == '' && combined.constraints.length > 0 ) {
-		queryString = combined.constraints.join(' and ');
+		// NB: not promises...
+		queryString = combined
+		.constraints
+		.map(c => { return rephraseEntityForQueryString(c); })
+		.join(' and ');
 	}
 
 	const full = {

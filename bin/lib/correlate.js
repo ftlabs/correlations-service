@@ -59,7 +59,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities);
-	debug(`getAllEntityFacets: num entities=${entitiesList.length}`);
+	debug(`getAllEntityFacets: num entities=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
 	const initialMillis = 100;
 	const spreadMillis = 5000; // spread out these fetches to try and avoid a node problem
 	const promises = entitiesList.map((entity,index) => {
