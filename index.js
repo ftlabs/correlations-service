@@ -2,7 +2,12 @@ const  dotenv = require('dotenv').config({ silent : process.env.NODE_ENVIRONMENT
 const   debug = require('debug')('correlations:index');
 const express = require('express');
 const    path = require('path');
+var    exphbs = require('express-handlebars');
+
 const     app = express();
+
+app.engine('handlebars', exphbs({defaultLayout: 'main'}));
+app.set('view engine', 'handlebars');
 
 const fetchContent = require('./bin/lib/fetchContent');
 const    correlate = require('./bin/lib/correlate');
@@ -43,7 +48,16 @@ if (process.env.BYPASS_SSO === 'true') {
 }
 
 app.get('/', (req, res) => {
-	res.sendFile(path.join(__dirname + '/static/index.html'));
+	// res.sendFile(path.join(__dirname + '/static/index.html'));
+  const islands = correlate.allIslands();
+  let island = (islands.length > 0)? islands[0] : [ {'entity1': true, 'entity2' : true}];
+  const entities = Object.keys(island);
+  res.render('home', {
+    ontology : correlate.ontology,
+    entity1 : entities[0],
+    entity2 : entities[entities.length -1],
+    entity1a : entities[1],
+  });
 });
 
 app.get('/article/:uuid', (req, res) => {
