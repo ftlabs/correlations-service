@@ -2,13 +2,16 @@
 
 const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
+const cache        = require('./cache');
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 
 const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
-let         allIslands = []; // [ {}, {} ]
+let         allIslands = []; // [ {}, {}, ... ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
+let soNearliesOnMainIsland = []; // [ {}, {}, ... ]
+let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity, byOverlap }
 
 let  latestBeforeSecs = 0; // most recent update time
 let earliestAfterSecs = 0; // oldest update time
@@ -202,7 +205,6 @@ function linkKnownEntitiesToAllIslands(){
 		});
 	});
 
-	allIslandsByEntity = islandsByEntity;
 	return islandsByEntity;
 }
 
@@ -230,8 +232,10 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
 			// post-processing: re-calc all the islands, and link entities to them
-			allIslands = findIslands(allCoocs);
-			linkKnownEntitiesToAllIslands();
+			allIslands         = findIslands(allCoocs);
+			allIslandsByEntity = linkKnownEntitiesToAllIslands();
+			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
+			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
 			const endPostProcessingMillis = Date.now();
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
@@ -259,6 +263,8 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 					postProcessingMillis : (endPostProcessingMillis - endFacetSearchesMillis)
 				}
 			};
+
+			cache.clearAll();
 			return summaryData;
 		})
 		;
@@ -391,6 +397,7 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 					return {
 						id    : result.id,
 						title : result.title.title,
+						initialPubDate : result.lifecycle.initialPublishDateTime,
 					};
 				})
 			}
@@ -438,6 +445,9 @@ function calcChainLengthsFrom(rootEntity){
 		debug(`calcChainBetween: unknown rootEntity=${rootEntity}`);
 	} else {
 		chainLengths = findAllChainLengths(rootEntity);
+		if (chainLengths.length >= 3) {
+			chainLengths[2].soNearlies = soNearliesOnMainIslandByEntity[rootEntity];
+		}
 	}
 
 	return {
@@ -446,7 +456,7 @@ function calcChainLengthsFrom(rootEntity){
 	}
 }
 
-function calcSoNearliesOnMainIsland(){
+function calcSoNearliesOnMainIslandImpl(){
 	let soNearlies = [];
 
 	if( allIslands.length > 0 ){
@@ -486,16 +496,44 @@ function calcSoNearliesOnMainIsland(){
 	return soNearlies;
 }
 
+function calcSoNearliesOnMainIslandByEntity(){
+	const soNearliesByEntity = {};
+
+	soNearliesOnMainIsland.forEach( sn => {
+		const e1 = sn.entity1;
+		const e2 = sn.entity2;
+		for( let pair of [[e1, e2], [e2, e1]]) {
+			if (! soNearliesByEntity.hasOwnProperty(pair[0])) {
+				soNearliesByEntity[pair[0]] = {
+					byEntity  : {},
+					byOverlap : {},
+				};
+			}
+
+			soNearliesByEntity[pair[0]].byEntity[pair[1]] = sn.intersectionList;
+			if (!soNearliesByEntity[pair[0]].byOverlap.hasOwnProperty(sn.intersectionSize)) {
+				soNearliesByEntity[pair[0]].byOverlap[sn.intersectionSize] = {};
+			}
+			soNearliesByEntity[pair[0]].byOverlap[sn.intersectionSize][pair[1]] = sn.intersectionList;
+		}
+	});
+
+	return soNearliesByEntity;
+}
+
+// function calcSoNearliesOnMainIsland(){
+// 	return cache.get( 'calcSoNearliesOnMainIsland', calcSoNearliesOnMainIslandImpl )
+// }
+
 // count how many times each entity appears in the intersection list of the soNearlies
 function calcMostBetweenSoNearliesOnMainIsland(sortBy=0){
 	const maxSortBy = 2;
 	if( sortBy < 0        ) { sortBy = 0; }
 	if( sortBy > maxSortBy) { sortBy = maxSortBy; }
 
-	let soNearlies = calcSoNearliesOnMainIsland();
 	const middleEntityCounts = {};
 
-	soNearlies.forEach( sn => {
+	soNearliesOnMainIsland.forEach( sn => {
 		sn.intersectionList.forEach( entity => {
 			if (! middleEntityCounts.hasOwnProperty(entity)) {
 				middleEntityCounts[entity] = [0,0,0];
@@ -577,12 +615,13 @@ module.exports = {
 	calcChainBetween,
 	calcChainLengthsFrom,
 	fetchCalcChainWithArticlesBetween,
-	calcSoNearliesOnMainIsland,
 	calcMostBetweenSoNearliesOnMainIsland,
 	allCoocs    : function(){ return allCoocs; },
 	allData     : getAllData,
 	allEntities : function(){ return Object.keys( knownEntities ).sort(); },
 	allIslands  : function(){ return allIslands; },
+	calcSoNearliesOnMainIsland : function() { return soNearliesOnMainIsland;},
+	soNearliesOnMainIslandByEntity : function() { return soNearliesOnMainIslandByEntity;},
 	summary     : getSummaryData,
 	logbook     : logbook,
 	ontology    : function() { return ONTOLOGY; },
