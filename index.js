@@ -162,6 +162,10 @@ app.get('/calcSoNearliesOnMainIsland', (req, res) => {
 	res.json( correlate.calcSoNearliesOnMainIsland() );
 });
 
+app.get('/soNearliesOnMainIslandByEntity', (req, res) => {
+	res.json( correlate.soNearliesOnMainIslandByEntity() );
+});
+
 app.get('/calcMostBetweenSoNearliesOnMainIsland', (req, res) => {
 	res.json( correlate.calcMostBetweenSoNearliesOnMainIsland() );
 });

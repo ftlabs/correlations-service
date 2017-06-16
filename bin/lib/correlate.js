@@ -11,6 +11,7 @@ const         allCoocs = {}; // [entity1][entity2]=true
 let         allIslands = []; // [ {}, {}, ... ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 let soNearliesOnMainIsland = []; // [ {}, {}, ... ]
+let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity, byOverlap }
 
 let  latestBeforeSecs = 0; // most recent update time
 let earliestAfterSecs = 0; // oldest update time
@@ -234,6 +235,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			allIslands         = findIslands(allCoocs);
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
 			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
+			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
 			const endPostProcessingMillis = Date.now();
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
@@ -490,6 +492,31 @@ function calcSoNearliesOnMainIslandImpl(){
 	return soNearlies;
 }
 
+function calcSoNearliesOnMainIslandByEntity(){
+	const soNearliesByEntity = {};
+
+	soNearliesOnMainIsland.forEach( sn => {
+		const e1 = sn.entity1;
+		const e2 = sn.entity2;
+		for( let pair of [[e1, e2], [e2, e1]]) {
+			if (! soNearliesByEntity.hasOwnProperty(pair[0])) {
+				soNearliesByEntity[pair[0]] = {
+					byEntity  : {},
+					byOverlap : {},
+				};
+			}
+
+			soNearliesByEntity[pair[0]].byEntity[pair[1]] = sn.intersectionList;
+			if (!soNearliesByEntity[pair[0]].byOverlap.hasOwnProperty(sn.intersectionSize)) {
+				soNearliesByEntity[pair[0]].byOverlap[sn.intersectionSize] = {};
+			}
+			soNearliesByEntity[pair[0]].byOverlap[sn.intersectionSize][pair[1]] = sn.intersectionList;
+		}
+	});
+
+	return soNearliesByEntity;
+}
+
 // function calcSoNearliesOnMainIsland(){
 // 	return cache.get( 'calcSoNearliesOnMainIsland', calcSoNearliesOnMainIslandImpl )
 // }
@@ -590,6 +617,7 @@ module.exports = {
 	allEntities : function(){ return Object.keys( knownEntities ).sort(); },
 	allIslands  : function(){ return allIslands; },
 	calcSoNearliesOnMainIsland : function() { return soNearliesOnMainIsland;},
+	soNearliesOnMainIslandByEntity : function() { return soNearliesOnMainIslandByEntity;},
 	summary     : getSummaryData,
 	logbook     : logbook,
 	ontology    : function() { return ONTOLOGY; },
