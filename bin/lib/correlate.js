@@ -397,6 +397,7 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 					return {
 						id    : result.id,
 						title : result.title.title,
+						initialPubDate : result.lifecycle.initialPublishDateTime,
 					};
 				})
 			}
