@@ -444,6 +444,9 @@ function calcChainLengthsFrom(rootEntity){
 		debug(`calcChainBetween: unknown rootEntity=${rootEntity}`);
 	} else {
 		chainLengths = findAllChainLengths(rootEntity);
+		if (chainLengths.length >= 3) {
+			chainLengths[2].soNearlies = soNearliesOnMainIslandByEntity[rootEntity];
+		}
 	}
 
 	return {
