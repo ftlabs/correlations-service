@@ -500,10 +500,9 @@ function calcMostBetweenSoNearliesOnMainIsland(sortBy=0){
 	if( sortBy < 0        ) { sortBy = 0; }
 	if( sortBy > maxSortBy) { sortBy = maxSortBy; }
 
-	let soNearlies = calcSoNearliesOnMainIsland();
 	const middleEntityCounts = {};
 
-	soNearlies.forEach( sn => {
+	soNearliesOnMainIsland.forEach( sn => {
 		sn.intersectionList.forEach( entity => {
 			if (! middleEntityCounts.hasOwnProperty(entity)) {
 				middleEntityCounts[entity] = [0,0,0];
