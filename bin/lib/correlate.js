@@ -2,13 +2,15 @@
 
 const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
+const cache        = require('./cache');
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 
 const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
-let         allIslands = []; // [ {}, {} ]
+let         allIslands = []; // [ {}, {}, ... ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
+let soNearliesOnMainIsland = []; // [ {}, {}, ... ]
 
 let  latestBeforeSecs = 0; // most recent update time
 let earliestAfterSecs = 0; // oldest update time
@@ -202,7 +204,6 @@ function linkKnownEntitiesToAllIslands(){
 		});
 	});
 
-	allIslandsByEntity = islandsByEntity;
 	return islandsByEntity;
 }
 
@@ -230,8 +231,9 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
 			// post-processing: re-calc all the islands, and link entities to them
-			allIslands = findIslands(allCoocs);
-			linkKnownEntitiesToAllIslands();
+			allIslands         = findIslands(allCoocs);
+			allIslandsByEntity = linkKnownEntitiesToAllIslands();
+			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
 			const endPostProcessingMillis = Date.now();
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
@@ -259,6 +261,8 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 					postProcessingMillis : (endPostProcessingMillis - endFacetSearchesMillis)
 				}
 			};
+
+			cache.clearAll();
 			return summaryData;
 		})
 		;
@@ -446,7 +450,7 @@ function calcChainLengthsFrom(rootEntity){
 	}
 }
 
-function calcSoNearliesOnMainIsland(){
+function calcSoNearliesOnMainIslandImpl(){
 	let soNearlies = [];
 
 	if( allIslands.length > 0 ){
@@ -485,6 +489,10 @@ function calcSoNearliesOnMainIsland(){
 
 	return soNearlies;
 }
+
+// function calcSoNearliesOnMainIsland(){
+// 	return cache.get( 'calcSoNearliesOnMainIsland', calcSoNearliesOnMainIslandImpl )
+// }
 
 // count how many times each entity appears in the intersection list of the soNearlies
 function calcMostBetweenSoNearliesOnMainIsland(sortBy=0){
@@ -577,12 +585,12 @@ module.exports = {
 	calcChainBetween,
 	calcChainLengthsFrom,
 	fetchCalcChainWithArticlesBetween,
-	calcSoNearliesOnMainIsland,
 	calcMostBetweenSoNearliesOnMainIsland,
 	allCoocs    : function(){ return allCoocs; },
 	allData     : getAllData,
 	allEntities : function(){ return Object.keys( knownEntities ).sort(); },
 	allIslands  : function(){ return allIslands; },
+	calcSoNearliesOnMainIsland : function() { return soNearliesOnMainIsland;},
 	summary     : getSummaryData,
 	logbook     : logbook,
 	ontology    : function() { return ONTOLOGY; },
