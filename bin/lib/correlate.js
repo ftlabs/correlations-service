@@ -607,6 +607,17 @@ function getIslandOfEntity(entity){
 	}
 }
 
+function calcAllEntitiesCountsPairs() {
+ return Object.keys( knownEntities )
+ .map( k => { return [k, knownEntities[k]] })
+ .sort( (a,b) => {
+	 if      (a[1] < b[1]) { return +1; }
+	 else if (a[1] > b[1]) { return -1; }
+	 else                  { return  0; }
+
+	 } );
+}
+
 module.exports = {
 	fetchUpdateCorrelationsLatest,
 	fetchUpdateCorrelationsEarlier,
@@ -619,6 +630,7 @@ module.exports = {
 	allCoocs    : function(){ return allCoocs; },
 	allData     : getAllData,
 	allEntities : function(){ return Object.keys( knownEntities ).sort(); },
+	allEntitiesCountsPairs : calcAllEntitiesCountsPairs,
 	allIslands  : function(){ return allIslands; },
 	calcSoNearliesOnMainIsland : function() { return soNearliesOnMainIsland;},
 	soNearliesOnMainIslandByEntity : function() { return soNearliesOnMainIslandByEntity;},
