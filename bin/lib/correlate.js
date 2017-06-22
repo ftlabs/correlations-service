@@ -217,6 +217,57 @@ function updateUpdateTimes(afterSecs, beforeSecs){
 	}
 }
 
+function checkAllCoocsForSymmetryProblems(){
+	const problems = [];
+	let countPairs = 0;
+
+	const entities = Object.keys(knownEntities);
+	for(let e1 of entities){
+		if(! allCoocs.hasOwnProperty(e1)) {
+			problems.push(`no entry for ${e1} in allCoocs}`);
+			continue;
+		}
+		for(let e2 of entities){
+			if( e1 === e2 ) { continue; }
+			countPairs ++;
+
+			if(! allCoocs.hasOwnProperty(e2)) {
+				problems.push(`no entry for ${e2} in allCoocs}`);
+				continue;
+			}
+			if(allCoocs[e1].hasOwnProperty(e2)) {
+				if (! allCoocs[e2].hasOwnProperty(e1)) {
+					problems.push(`${e1} knows about ${e2}, but not vice-versa`);
+				}
+			} else if (allCoocs[e2].hasOwnProperty(e1)) {
+				problems.push(`${e2} knows about ${e1}, but not vice-versa`);
+			}
+		}
+	}
+
+	for( let e1 of Object.keys(allCoocs) ) {
+		if (! knownEntities.hasOwnProperty(e1)) {
+			problems.push(`allCoocs key, ${e1}, not in knownEntities`);
+			continue;
+		}
+
+		for( let e2 of Object.keys(allCoocs[e1]) ) {
+			countPairs ++;
+			if (e1 === e2) {
+				problems.push(`allCoocs: self-cooc for ${e1}`);
+			}
+
+			if ( ! knownEntities.hasOwnProperty(e2)) {
+				problems.push(`allCoocs[${e1}] key, ${e2}, not in knownEntities`);
+			}
+		}
+	}
+
+	debug(`checkAllCoocsForSymmetryProblems: countPairs=${countPairs}`);
+
+	return problems;
+}
+
 // tie together the fetching of new data, and the post-processing of it
 function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	const startInitialSearchMillis = Date.now();
@@ -230,6 +281,12 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		.then( entitiesAndFacets => {
 			const endFacetSearchesMillis = Date.now();
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
+			const symmetryProblems = checkAllCoocsForSymmetryProblems();
+			if (symmetryProblems.length > 0) {
+				console.log(`ERROR: symmetryProblems: ${JSON.stringify(symmetryProblems)}`);
+			} else {
+			 	console.log(`DEBUG: no symmetryProblems found`);
+		 	}
 			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
 			// post-processing: re-calc all the islands, and link entities to them
 			allIslands         = findIslands(allCoocs);
