@@ -193,6 +193,13 @@ function findIslands(coocs) {
 		checkedIslands.push(possibleIslands[0]);
 	}
 
+	// // convert the 'true' value to the count for each entity
+	// checkedIslands.forEach( island => {
+	// 	Object.keys( island ).forEach( k => {
+	// 		island[k] = knownEntities[k];
+	// 	});
+	// });
+
 	return checkedIslands.sort(compareLengthsLongestFirst);
 }
 
