@@ -283,7 +283,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
 			if (symmetryProblems.length > 0) {
-				console.log(`ERROR: symmetryProblems: ${JSON.stringify(symmetryProblems)}`);
+				console.log(`ERROR: symmetryProblems: ${JSON.stringify(symmetryProblems, null, 2)}`);
 			} else {
 			 	console.log(`DEBUG: no symmetryProblems found`);
 		 	}
@@ -354,8 +354,11 @@ function fetchUpdateCorrelationsEarlier(intervalSecs=0) {
 }
 
 
-// assume there *is* a chain
-function findLinks(chainSoFar, bestChain, targetEntity){
+// Assume there *is* a chain.
+// Loop over each of the coocs of the latest entity in the chainsofar,
+// cutting a branch as soon as it is not possible to improve the bestChain.
+
+function findLinks(chainSoFar, targetEntity, bestChain=null){
 
 	if (bestChain != null && chainSoFar.length >= (bestChain.length -1)) {
 		return bestChain;
@@ -363,6 +366,8 @@ function findLinks(chainSoFar, bestChain, targetEntity){
 
 	const     latest = chainSoFar[chainSoFar.length -1];
 	const candidates = Object.keys( allCoocs[latest] );
+
+	// console.log(`DEBUG: findLinks: latest=${latest}, chainSoFar.length=${chainSoFar.length}, candidates.length=${candidates.length}, bestChain.length=${(bestChain == null)? 0 : bestChain.length}`);
 
 	for( let candidate of candidates){
 		if (candidate == targetEntity) {
@@ -375,12 +380,32 @@ function findLinks(chainSoFar, bestChain, targetEntity){
 	}
 
 	for( let candidate of candidates){
-		if (! chainSoFar.includes(candidate) ) {
-			const chainFound = findLinks(chainSoFar.concat([candidate]), bestChain, targetEntity);
-			if (chainFound != null) {
-				if (bestChain == null || chainFound.length < bestChain.length) {
-					bestChain = chainFound;
+		if (chainSoFar.includes(candidate) ) {
+			continue;
+		}
+
+		// Check that we are not returning to a cooc of something already in the chainSoFar.
+		if (chainSoFar.length > 2) {
+			let alreadyCoocedInChainSoFar = false;
+			let candidateCoocs = allCoocs[candidate];
+			for (let i = 1; i < chainSoFar.length -1; i++) {
+				alreadyCoocedInChainSoFar = candidateCoocs.hasOwnProperty(chainSoFar[i]);
+				if (alreadyCoocedInChainSoFar) {
+					break;
 				}
+			}
+
+			if (alreadyCoocedInChainSoFar) {
+				continue;
+			}
+		}
+
+		// So, if we get here, it is worth exploring this branch.
+
+		const chainFound = findLinks(chainSoFar.concat([candidate]), bestChain, targetEntity);
+		if (chainFound != null) {
+			if (bestChain == null || chainFound.length < bestChain.length) {
+				bestChain = chainFound;
 			}
 		}
 	}
@@ -400,7 +425,7 @@ function calcChainBetween(entity1, entity2) {
 	} else if (! allIslandsByEntity[entity1].hasOwnProperty(entity2)) {
 		debug(`calcChainBetween: entities not on same island. entity1=${entity1}, entity2=${entity2}`);
 	} else {
-		chain = findLinks([entity1], null, entity2);
+		chain = findLinks([entity1], entity2);
 	}
 
 	return {
