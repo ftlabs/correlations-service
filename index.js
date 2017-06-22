@@ -133,10 +133,6 @@ app.get('/allEntities', (req, res) => {
 	res.json( correlate.allEntities() );
 });
 
-app.get('/allEntitiesCountsPairs', (req, res) => {
-	res.json( correlate.allEntitiesCountsPairs() );
-});
-
 app.get('/islandOf/:entity', (req, res) => {
 	res.json( {
 		entity: req.params.entity,
