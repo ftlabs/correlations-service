@@ -365,9 +365,16 @@ function fetchUpdateCorrelationsEarlier(intervalSecs=0) {
 // Loop over each of the coocs of the latest entity in the chainsofar,
 // cutting a branch as soon as it is not possible to improve the bestChain.
 
-function findLinks(chainSoFar, targetEntity, bestChain=null){
+function findLinks(chainSoFar, targetEntity, bestChain=null, maxLength=null){
+	if (maxLength == null) {
+		maxLength = calcChainLengthsFrom(targetEntity).chainLengths.length;
+	}
 
 	if (bestChain != null && chainSoFar.length >= (bestChain.length -1)) {
+		return bestChain;
+	}
+
+	if (chainSoFar.length >= maxLength) {
 		return bestChain;
 	}
 
@@ -409,7 +416,7 @@ function findLinks(chainSoFar, targetEntity, bestChain=null){
 
 		// So, if we get here, it is worth exploring this branch.
 
-		const chainFound = findLinks(chainSoFar.concat([candidate]), bestChain, targetEntity);
+		const chainFound = findLinks(chainSoFar.concat([candidate]), targetEntity, bestChain, maxLength);
 		if (chainFound != null) {
 			if (bestChain == null || chainFound.length < bestChain.length) {
 				bestChain = chainFound;
