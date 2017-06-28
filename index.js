@@ -184,6 +184,12 @@ app.get('/calcSoNearliesForEntities/:entities', (req, res) => {
 	res.json( correlate.calcSoNearliesForEntities(entities, max) );
 });
 
+app.get('/calcCoocsForEntities/:entities', (req, res) => {
+  const entities = req.params.entities.split(',');
+  const max = (req.query.max)? req.query.max : 10;
+	res.json( correlate.calcCoocsForEntities(entities, max) );
+});
+
 //---
 
 function startListening(){

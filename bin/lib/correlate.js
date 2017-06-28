@@ -767,6 +767,48 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 	};
 }
 
+// given a list of entities,
+// look up a suitable set of soNearlies as recommendations
+function calcCoocsForEntities( entities, max=10 ){
+	const known = entities.filter( e => { return soNearliesOnMainIslandByEntity.hasOwnProperty(e); });
+	let coocs = [];
+	const candidates = {};
+
+	if (known.length == 0) {
+		coocs = Object.keys(soNearliesOnMainIslandByEntity).slice(0,max);
+	} else {
+
+		// count the overlapping coocs of all the entities,
+		for( let entity of known ) {
+			for( let cooc of Object.keys(allCoocs[entity]) ){
+				if (!candidates.hasOwnProperty(cooc)) {
+					candidates[cooc] = 0;
+				}
+				candidates[cooc] = candidates[cooc] + 1;
+			}
+		}
+
+		const candidateList = Object.keys(candidates).sort((a,b) => {
+			if     (candidates[a] < candidates[b]) { return  1; }
+			else if(candidates[a] > candidates[b]) { return -1; }
+			else                                   { return  0; }
+		});
+
+		coocs = candidateList.slice(0,max);
+	}
+
+	return {
+		notes : [
+			'assumes entities are on main island',
+			{candidates}
+		],
+		requestedEntities : entities,
+		knownEntities: known,
+		max,
+		coocs,
+	};
+}
+
 module.exports = {
 	fetchUpdateCorrelationsLatest,
 	fetchUpdateCorrelationsEarlier,
@@ -784,6 +826,7 @@ module.exports = {
 	calcSoNearliesOnMainIsland : function() { return soNearliesOnMainIsland;},
 	soNearliesOnMainIslandByEntity : function() { return soNearliesOnMainIslandByEntity;},
 	calcSoNearliesForEntities,
+	calcCoocsForEntities,
 	summary     : getSummaryData,
 	logbook     : logbook,
 	ontology    : function() { return ONTOLOGY; },
