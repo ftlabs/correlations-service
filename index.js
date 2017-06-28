@@ -178,6 +178,12 @@ app.get('/calcMostBetweenSoNearliesOnMainIsland/:sortBy', (req, res) => {
 	res.json( correlate.calcMostBetweenSoNearliesOnMainIsland(req.params.sortBy) );
 });
 
+app.get('/calcSoNearliesForEntities/:entities', (req, res) => {
+  const entities = req.params.entities.split(',');
+  const max = (req.query.max)? req.query.max : 10;
+	res.json( correlate.calcSoNearliesForEntities(entities, max) );
+});
+
 //---
 
 function startListening(){
