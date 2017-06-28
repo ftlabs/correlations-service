@@ -11,7 +11,7 @@ const         allCoocs = {}; // [entity1][entity2]=true
 let         allIslands = []; // [ {}, {}, ... ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 let soNearliesOnMainIsland = []; // [ {}, {}, ... ]
-let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity, byOverlap }
+let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity: {entity2: [entities]}, byOverlap: {int : {entities}} }
 
 let  latestBeforeSecs = 0; // most recent update time
 let earliestAfterSecs = 0; // oldest update time
@@ -714,6 +714,101 @@ function calcAllEntitiesCountsPairs() {
 	 } );
 }
 
+// given a list of entities,
+// look up a suitable set of soNearlies as recommendations
+function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
+	const known = entities.filter( e => { return soNearliesOnMainIslandByEntity.hasOwnProperty(e); });
+	let soNearlies = [];
+	const candidates = {};
+
+	if (known.length == 0) {
+		soNearlies = Object.keys(soNearliesOnMainIslandByEntity).slice(0,maxRecommendations);
+	} else {
+
+		// count the overlapping soNearlies of all the entities,
+		// ignoring the degree of soNearly-ness
+		for( let entity of known ) {
+			const sn = soNearliesOnMainIslandByEntity[entity];
+			for( let ce of Object.keys(sn.byEntity) ){
+				if (!candidates.hasOwnProperty(ce)) {
+					candidates[ce] = 0;
+				}
+				candidates[ce] = candidates[ce] + 1;
+			}
+		}
+
+		// remove any direct coocs
+		for( let entity of known ) {
+			for( let candidate of Object.keys(candidates) ){
+				if (allCoocs[entity].hasOwnProperty(candidate)) {
+					delete(candidates[candidate]);
+				}
+			}
+		}
+
+		const candidateList = Object.keys(candidates).sort((a,b) => {
+			if     (candidates[a] < candidates[b]) { return  1; }
+			else if(candidates[a] > candidates[b]) { return -1; }
+			else                                   { return  0; }
+		});
+
+		soNearlies = candidateList.slice(0,maxRecommendations);
+	}
+
+	return {
+		notes : [
+			'assumes entities are on main island',
+			{candidates}
+		],
+		requestedEntities : entities,
+		knownEntities: known,
+		maxRecommendations,
+		soNearlies,
+	};
+}
+
+// given a list of entities,
+// look up a suitable set of coocs as recommendations
+function calcCoocsForEntities( entities, max=10 ){
+	const known = entities.filter( e => { return soNearliesOnMainIslandByEntity.hasOwnProperty(e); });
+	let coocs = [];
+	const candidates = {};
+
+	if (known.length == 0) {
+		coocs = Object.keys(soNearliesOnMainIslandByEntity).slice(0,max);
+	} else {
+
+		// count the overlapping coocs of all the entities,
+		for( let entity of known ) {
+			for( let cooc of Object.keys(allCoocs[entity]) ){
+				if (!candidates.hasOwnProperty(cooc)) {
+					candidates[cooc] = 0;
+				}
+				candidates[cooc] = candidates[cooc] + 1;
+			}
+		}
+
+		const candidateList = Object.keys(candidates).sort((a,b) => {
+			if     (candidates[a] < candidates[b]) { return  1; }
+			else if(candidates[a] > candidates[b]) { return -1; }
+			else                                   { return  0; }
+		});
+
+		coocs = candidateList.slice(0,max);
+	}
+
+	return {
+		notes : [
+			'assumes entities are on main island',
+			{candidates}
+		],
+		requestedEntities : entities,
+		knownEntities: known,
+		max,
+		coocs,
+	};
+}
+
 module.exports = {
 	fetchUpdateCorrelationsLatest,
 	fetchUpdateCorrelationsEarlier,
@@ -730,6 +825,8 @@ module.exports = {
 	allIslands  : function(){ return allIslands; },
 	calcSoNearliesOnMainIsland : function() { return soNearliesOnMainIsland;},
 	soNearliesOnMainIslandByEntity : function() { return soNearliesOnMainIslandByEntity;},
+	calcSoNearliesForEntities,
+	calcCoocsForEntities,
 	summary     : getSummaryData,
 	logbook     : logbook,
 	ontology    : function() { return ONTOLOGY; },
