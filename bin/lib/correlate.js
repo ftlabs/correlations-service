@@ -768,7 +768,7 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 }
 
 // given a list of entities,
-// look up a suitable set of soNearlies as recommendations
+// look up a suitable set of coocs as recommendations
 function calcCoocsForEntities( entities, max=10 ){
 	const known = entities.filter( e => { return soNearliesOnMainIslandByEntity.hasOwnProperty(e); });
 	let coocs = [];
