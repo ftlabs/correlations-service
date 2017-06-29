@@ -14,7 +14,9 @@ if (! CAPI_KEY ) {
 const CAPI_PATH = 'http://api.ft.com/enrichedcontent/';
 const SAPI_PATH = 'http://api.ft.com/content/search/v1';
 
-const EntityRegex = /^([a-z]+):(.+)$/;
+// NB: should only match basic ontology values, maybe with Id suffix, e.g. people and peopleId,
+// and *not* other constraint fields such as lastPublishDateTime
+const EntityRegex = /^([a-z]+(?:Id)?):(.+)$/;
 function rephraseEntityForQueryString(item){
 	const match = EntityRegex.exec(item);
 	if (match) {
