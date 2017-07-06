@@ -190,6 +190,13 @@ app.get('/calcCoocsForEntities/:entities', (req, res) => {
 	res.json( correlate.calcCoocsForEntities(entities, max) );
 });
 
+app.get('/searchByEntityWithFacets/:entity', (req, res) => {
+  const entity = req.params.entity;
+	fetchContent.searchByEntityWithFacets(entity)
+  .then( obj => res.json( obj ) )
+  ;
+});
+
 //---
 
 function startListening(){

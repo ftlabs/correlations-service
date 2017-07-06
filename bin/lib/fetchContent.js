@@ -26,6 +26,39 @@ function rephraseEntityForQueryString(item){
 	}
 }
 
+// const valid facetNames = [
+//   "authors",
+//   "authorsId",
+//   "brand",
+//   "brandId",
+//   "category",
+//   "format",
+//   "genre",
+//   "genreId",
+//   "icb",
+//   "icbId",
+//   "iptc",
+//   "iptcId",
+//   "organisations",
+//   "organisationsId",
+//   "people",
+//   "peopleId",
+//   "primarySection",
+//   "primarySectionId",
+//   "primaryTheme",
+//   "primaryThemeId",
+//   "regions",
+//   "regionsId",
+//   "sections",
+//   "sectionsId",
+//   "specialReports",
+//   "specialReportsId",
+//   "subjects",
+//   "subjectsId",
+//   "topics",
+//   "topicsId"
+// ];
+
 function constructSAPIQuery( params ) {
 
 	const defaults = {
@@ -48,6 +81,15 @@ function constructSAPIQuery( params ) {
 		.join(' and ');
 	}
 
+	// for whichever ontology we pick,
+	// make sure we have the with and without Id variations for the facets.
+	const facets = [combined.ontology];
+	if (combined.ontology.match(/Id$/)) {
+		facets.push( combined.ontology.replace(/Id$/, ''));
+	} else {
+		facets.push( combined.ontology + 'Id' );
+	}
+
 	const full = {
   	"queryString": queryString,
   	"queryContext" : {
@@ -59,7 +101,7 @@ function constructSAPIQuery( params ) {
 			   "aspects" : combined.aspects,
 			 "sortOrder" : "DESC",
 			 "sortField" : "lastPublishDateTime",
-			    "facets" : {"names":[combined.ontology], "maxElements":-1}
+			    "facets" : {"names":facets, "maxElements":-1}
   	}
 	}
 
@@ -169,8 +211,17 @@ function searchUnixTimeRange(afterSecs, beforeSecs, params={} ) {
 	return search( params );
 }
 
+function searchByEntityWithFacets( entity ){
+	const pieces = entity.split(':');
+	return search({
+		queryString: entity,
+		ontology: pieces[0],
+	});
+}
+
 module.exports = {
 	article,
 	searchByUUID,
 	searchUnixTimeRange,
+	searchByEntityWithFacets,
 };
