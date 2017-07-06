@@ -11,6 +11,7 @@ app.set('view engine', 'handlebars');
 
 const fetchContent = require('./bin/lib/fetchContent');
 const    correlate = require('./bin/lib/correlate');
+const         v1v2 = require('./bin/lib/v1v2');
 
 const authS3O = require('s3o-middleware');
 
@@ -193,6 +194,13 @@ app.get('/calcCoocsForEntities/:entities', (req, res) => {
 app.get('/searchByEntityWithFacets/:entity', (req, res) => {
   const entity = req.params.entity;
 	fetchContent.searchByEntityWithFacets(entity)
+  .then( obj => res.json( obj ) )
+  ;
+});
+
+app.get('/v1v2/:entity', (req, res) => {
+  const entity = req.params.entity;
+	v1v2.fetchVariationsOfEntity(entity)
   .then( obj => res.json( obj ) )
   ;
 });
