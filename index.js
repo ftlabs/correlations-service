@@ -13,6 +13,7 @@ const fetchContent = require('./bin/lib/fetchContent');
 const    correlate = require('./bin/lib/correlate');
 
 const checkToken = require('./bin/lib/check-token');
+const S3O = require('s3o-middleware');
 
 var requestLogger = function(req, res, next) {
     debug("RECEIVED REQUEST:", req.method, req.url);
@@ -43,6 +44,7 @@ app.set('json spaces', 2);
 
 if (process.env.BYPASS_TOKEN !== 'true') {
 	app.use(checkToken);
+	app.use(S3O);
 }
 
 app.get('/', (req, res) => {

@@ -15,7 +15,7 @@ module.exports = (req, res, next) => {
 		});
 	} else if(passedToken === process.env.USER_ACCESS_TOKEN){
 		debug(`Token '${passedToken}' was valid`);
-		next();
+		next('route');
 	} else {
 		debug(`Token '${passedToken}' is not valid`);
 		res.status(401);
