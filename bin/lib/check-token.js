@@ -7,12 +7,18 @@ module.exports = (req, res, next) => {
 
 	debug(`Checking if token '${passedToken}' is valid`);
 
-	if(passedToken === process.env.TOKEN){
+	if(passedToken === undefined){
+		debug(`No token has been passed to service. Falling through to S3O`);
+		S3O(req, res, next);
+	} else if(passedToken === process.env.TOKEN){
 		debug(`Token '${passedToken}' was valid`);
 		next();
 	} else {
-		debug(`Token '${passedToken}' was not valid`);
-		S3O(req, res, next);
+		res.status(401);
+		res.json({
+			status : 'err',
+			message : 'The token value passed was invalid.'
+		});
 	}
 
 }
