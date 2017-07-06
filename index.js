@@ -13,7 +13,7 @@ const fetchContent = require('./bin/lib/fetchContent');
 const    correlate = require('./bin/lib/correlate');
 const         v1v2 = require('./bin/lib/v1v2');
 
-const authS3O = require('s3o-middleware');
+const validateRequest = require('./bin/lib/check-token');
 
 var requestLogger = function(req, res, next) {
     debug("RECEIVED REQUEST:", req.method, req.url);
@@ -42,10 +42,8 @@ app.get('/dummy', (req, res) => {
 // these route *do* use s3o
 app.set('json spaces', 2);
 
-if (process.env.BYPASS_SSO === 'true') {
-  // do no sso
-} else {
-  app.use(authS3O);
+if (process.env.BYPASS_TOKEN !== 'true') {
+	app.use(validateRequest);
 }
 
 app.get('/', (req, res) => {
