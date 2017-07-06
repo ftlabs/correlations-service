@@ -1,4 +1,5 @@
 const debug = require('debug')('bin:lib:check-token');
+const S3O = require('s3o-middleware');
 
 module.exports = (req, res, next) => {
 
@@ -6,11 +7,12 @@ module.exports = (req, res, next) => {
 
 	debug(`Checking if token '${passedToken}' is valid`);
 
-	if(passedToken === process.env.USER_ACCESS_TOKEN){
+	if(passedToken === process.env.TOKEN){
 		debug(`Token '${passedToken}' was valid`);
-		next('route');
-	} else {
 		next();
+	} else {
+		debug(`Token '${passedToken}' was not valid`);
+		S3O(req, res, next);
 	}
 
 }
