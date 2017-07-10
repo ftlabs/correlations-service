@@ -56,6 +56,7 @@ app.get('/', (req, res) => {
     entity1 : entities[0],
     entity2 : entities[entities.length -1],
     entity1a : entities[1],
+    tmeId1 : (correlate.ontology == 'people')? 'TnN0ZWluX1BOX1BvbGl0aWNpYW5fMjcx-UE4=' : 'NDdiMzAyNzctMTRlMy00Zjk1LWEyZjYtYmYwZWIwYWU2NzAy-VG9waWNz',
   });
 });
 
@@ -199,6 +200,13 @@ app.get('/searchByEntityWithFacets/:entity', (req, res) => {
 app.get('/v1v2/:entity', (req, res) => {
   const entity = req.params.entity;
 	v1v2.fetchVariationsOfEntity(entity)
+  .then( obj => res.json( obj ) )
+  ;
+});
+
+app.get('/tmeIdToV2/:entity', (req, res) => {
+  const entity = req.params.entity;
+	fetchContent.tmeIdToV2(entity)
   .then( obj => res.json( obj ) )
   ;
 });
