@@ -3,6 +3,7 @@
 const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
 const cache        = require('./cache');
+const v1v2         = require('./v1v2');
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 
@@ -12,6 +13,8 @@ let         allIslands = []; // [ {}, {}, ... ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 let soNearliesOnMainIsland = []; // [ {}, {}, ... ]
 let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity: {entity2: [entities]}, byOverlap: {int : {entities}} }
+
+let biggestIsland = [];
 
 let  latestBeforeSecs = 0; // most recent update time
 let earliestAfterSecs = 0; // oldest update time
@@ -275,17 +278,33 @@ function checkAllCoocsForSymmetryProblems(){
 	return problems;
 }
 
+function calcIslandSortedByCount(island){
+	const islanders = Object.keys(island).map( key => { return [key, island[key]]; } );
+	islanders.sort( (a,b) => {
+		if     ( a[1] < b[1] ) { return +1; }
+		else if( a[1] > b[1] ) { return -1; }
+		else                   { return  0; }
+	});
+	return islanders;
+}
+
 // tie together the fetching of new data, and the post-processing of it
 function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	const startInitialSearchMillis = Date.now();
 	let startFacetSearchesMillis;
+	let entitiesAndFacets;
+
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
 			startFacetSearchesMillis = Date.now();
 			return deltaEntities;
 		} )
 		.then( deltaEntities     => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
-		.then( entitiesAndFacets => {
+		.then( entitiesAndFacetsSnapshot => {
+			entitiesAndFacets = entitiesAndFacetsSnapshot;
+		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities));
+		})
+		.then( variationsOfEntities => {
 			const endFacetSearchesMillis = Date.now();
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
@@ -300,6 +319,8 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
 			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
 			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
+			biggestIsland = calcIslandSortedByCount( (allIslands.length > 0)? allIslands[0] : [] );
+
 			const endPostProcessingMillis = Date.now();
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
@@ -307,9 +328,9 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			summaryData['delta'] = {
 				times : {
 					afterSecs,
-					afterSecs           : new Date(afterSecs * 1000).toISOString(),
+					afterSecsDate       : new Date(afterSecs * 1000).toISOString(),
 					beforeSecs,
-					beforeSecs          : new Date( beforeSecs * 1000).toISOString(),
+					beforeSecsDate      : new Date( beforeSecs * 1000).toISOString(),
 				  intervalCoveredSecs : (beforeSecs - afterSecs),
 					intervalCoveredHrs  : (beforeSecs - afterSecs)/3600,
 				},
@@ -531,6 +552,14 @@ function findAllChainLengths(rootEntity){
 		}
 		lastEntities = nextEntities;
 	}
+
+	chainLengths.forEach( layer => {
+		layer.entities.sort( (a,b) => {
+			if      ( knownEntities[a] < knownEntities[b] ) { return +1; }
+			else if ( knownEntities[a] > knownEntities[b] ) { return -1; }
+			else                                            { return  0; }
+		});
+	})
 
 	return chainLengths;
 }
@@ -830,4 +859,5 @@ module.exports = {
 	summary     : getSummaryData,
 	logbook     : logbook,
 	ontology    : function() { return ONTOLOGY; },
+	biggestIsland : function(){ return biggestIsland; },
 };

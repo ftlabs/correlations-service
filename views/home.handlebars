@@ -57,6 +57,7 @@
     <li><a href="/allEntities" />/allEntities</a></li>
     <li><a href="/allEntitiesCountsPairs" />/allEntitiesCountsPairs</a></li>
     <li><a href="/allIslands" />/allIslands</a> - sets of entities who can be connected together by a series of correlations.</li>
+    <li><a href="/biggestIsland" />/biggestIsland</a> - list of entities on biggest island, sorted by article count.</li>
     <li><a href="/summary" />/summary</a> - stats of data</li>
   </ul>
   <li>updates</li>
@@ -87,6 +88,28 @@
     <li>/searchLastSeconds/:SECONDS/:ENTITY1/:ENTITY2</li>
     <ul>
       <li>e.g., <a href="/searchLastSeconds/36000/{{entity1}}/{{entity1a}}" />last 10 hours, {{entity1}}, {{entity1a}}</a></li>
+    </ul>
+    <li>/searchByEntityWithFacets/:ENTITY</li>
+    <ul>
+      <li>e.g., <a href="/searchByEntityWithFacets/{{entity1}}" />{{entity1}}</a></li>
+    </ul>
+    <li>/v1v2/:ENTITY</li>
+    <ul>
+      <li>e.g., <a href="/v1v2/entity/{{entity1}}" />/v1v2/entity/{{entity1}}</a></li>
+    </ul>
+    <ul>
+      <li>e.g., <a href="/v1v2/store" />/store</a></li>
+    </ul>
+    <ul>
+      <li>e.g., <a href="/v1v2/store_errors" />/store_errors</a></li>
+    </ul>
+    <li>/tmeIdToV2/:ENTITY</li>
+    <ul>
+      <li>e.g., <a href="/tmeIdToV2/{{tmeId1}}" />{{tmeId1}}</a></li>
+    </ul>
+    <li>/v2ApiCall/?url=URL</li>
+    <ul>
+      <li>e.g., <a href="/v2ApiCall/?url={{v2ApuUrl1}}" />{{v2ApuUrl1}}</a></li>
     </ul>
   </ul>
 </ul>

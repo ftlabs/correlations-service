@@ -11,6 +11,7 @@ app.set('view engine', 'handlebars');
 
 const fetchContent = require('./bin/lib/fetchContent');
 const    correlate = require('./bin/lib/correlate');
+const         v1v2 = require('./bin/lib/v1v2');
 
 const validateRequest = require('./bin/lib/check-token');
 
@@ -55,6 +56,8 @@ app.get('/', (req, res) => {
     entity1 : entities[0],
     entity2 : entities[entities.length -1],
     entity1a : entities[1],
+    tmeId1 : (correlate.ontology == 'people')? 'TnN0ZWluX1BOX1BvbGl0aWNpYW5fMjcx-UE4=' : 'NDdiMzAyNzctMTRlMy00Zjk1LWEyZjYtYmYwZWIwYWU2NzAy-VG9waWNz',
+    v2ApuUrl1 : 'http://api.ft.com/things/f79cb3d0-3c68-3776-b6ac-43a44609a7d6',
   });
 });
 
@@ -127,6 +130,10 @@ app.get('/allIslands', (req, res) => {
 	res.json( correlate.allIslands() );
 });
 
+app.get('/biggestIsland', (req, res) => {
+	res.json( correlate.biggestIsland() );
+});
+
 app.get('/allEntities', (req, res) => {
 	res.json( correlate.allEntities() );
 });
@@ -186,6 +193,42 @@ app.get('/calcCoocsForEntities/:entities', (req, res) => {
   const entities = req.params.entities.split(',');
   const max = (req.query.max)? req.query.max : 10;
 	res.json( correlate.calcCoocsForEntities(entities, max) );
+});
+
+app.get('/searchByEntityWithFacets/:entity', (req, res) => {
+  const entity = req.params.entity;
+	fetchContent.searchByEntityWithFacets(entity)
+  .then( obj => res.json( obj ) )
+  ;
+});
+
+app.get('/v1v2/entity/:entity', (req, res) => {
+  const entity = req.params.entity;
+	v1v2.fetchVariationsOfEntity(entity)
+  .then( obj => res.json( obj ) )
+  ;
+});
+
+app.get('/v1v2/store', (req, res) => {
+  res.json( v1v2.store() );
+});
+
+app.get('/v1v2/store_errors', (req, res) => {
+  res.json( v1v2.store_errors() );
+});
+
+app.get('/tmeIdToV2/:entity', (req, res) => {
+  const entity = req.params.entity;
+	fetchContent.tmeIdToV2(entity)
+  .then( obj => res.json( obj ) )
+  ;
+});
+
+app.get('/v2ApiCall/', (req, res) => {
+  const url = req.query.url;
+	fetchContent.v2ApiCall(url)
+  .then( obj => res.json( obj ) )
+  ;
 });
 
 //---
