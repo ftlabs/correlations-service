@@ -130,6 +130,10 @@ app.get('/allIslands', (req, res) => {
 	res.json( correlate.allIslands() );
 });
 
+app.get('/biggestIsland', (req, res) => {
+	res.json( correlate.biggestIsland() );
+});
+
 app.get('/allEntities', (req, res) => {
 	res.json( correlate.allEntities() );
 });

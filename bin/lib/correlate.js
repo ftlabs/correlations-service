@@ -14,6 +14,8 @@ let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 let soNearliesOnMainIsland = []; // [ {}, {}, ... ]
 let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity: {entity2: [entities]}, byOverlap: {int : {entities}} }
 
+let biggestIsland = [];
+
 let  latestBeforeSecs = 0; // most recent update time
 let earliestAfterSecs = 0; // oldest update time
 
@@ -276,6 +278,16 @@ function checkAllCoocsForSymmetryProblems(){
 	return problems;
 }
 
+function calcIslandSortedByCount(island){
+	const islanders = Object.keys(island).map( key => { return [key, island[key]]; } );
+	islanders.sort( (a,b) => {
+		if     ( a[1] < b[1] ) { return +1; }
+		else if( a[1] > b[1] ) { return -1; }
+		else                   { return  0; }
+	});
+	return islanders;
+}
+
 // tie together the fetching of new data, and the post-processing of it
 function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	const startInitialSearchMillis = Date.now();
@@ -307,6 +319,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
 			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
 			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
+			biggestIsland = calcIslandSortedByCount( (allIslands.length > 0)? allIslands[0] : [] );
 
 			const endPostProcessingMillis = Date.now();
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
@@ -838,4 +851,5 @@ module.exports = {
 	summary     : getSummaryData,
 	logbook     : logbook,
 	ontology    : function() { return ONTOLOGY; },
+	biggestIsland : function(){ return biggestIsland; },
 };
