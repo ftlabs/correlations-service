@@ -553,6 +553,14 @@ function findAllChainLengths(rootEntity){
 		lastEntities = nextEntities;
 	}
 
+	chainLengths.forEach( layer => {
+		layer.entities.sort( (a,b) => {
+			if      ( knownEntities[a] < knownEntities[b] ) { return +1; }
+			else if ( knownEntities[a] > knownEntities[b] ) { return -1; }
+			else                                            { return  0; }
+		});
+	})
+
 	return chainLengths;
 }
 
