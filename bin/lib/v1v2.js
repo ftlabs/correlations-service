@@ -16,7 +16,7 @@ function fetchVariationsOfEntity( entity ){
 	}
 
 	const variations = {
-		give : {
+		given : {
 			entity,
 			ontology,
 			ontologyWithId,
@@ -41,6 +41,27 @@ function fetchVariationsOfEntity( entity ){
 				}
 			}
 		}
+		if (!variations.hasOwnProperty('v1TME')) {
+			throw `no v1 TME found for entity=${entity}`;
+		}
+		return variations['v1TME'];
+	})
+	.then( v1TME => fetchContent.tmeIdToV2(v1TME) )
+	.then( v2Info => {
+		debug( `fetchVariationsOfEntity: v2Info=${JSON.stringify(v2Info)}`);
+		variations['v2Id'    ] = v2Info.concordances[0].concept.id;
+		variations['v2ApiUrl'] = v2Info.concordances[0].concept.apiUrl;
+		variations['v2Stuff'] = { v2Info };
+		return variations['v2Id'];
+	})
+	.then( v2Id => fetchContent.v2ApiCall(variations['v2Id']) )
+	.then( v2IdDetails => {
+		variations['v2PrefLabel'] = v2IdDetails.prefLabel;
+		variations['v2Stuff']['v2IdDetails'] = v2IdDetails;
+		return variations;
+	})
+	.catch( err => {
+		variations['error'] = err;
 		return variations;
 	})
 	;
