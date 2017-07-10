@@ -76,22 +76,43 @@ function fetchLatestVariationsOfEntity( entity ){
 			}
 		}
 		if (!variations.hasOwnProperty('v1TME')) {
-			throw `no v1 TME found for entity=${entity}`;
+			throw `no v1 TME found for entity=${entity}, searchRes=${JSON.stringify(searchRes)}`;
 		}
 		return variations['v1TME'];
 	})
 	.then( v1TME => fetchContent.tmeIdToV2(v1TME) )
 	.then( v2Info => {
 		debug( `fetchLatestVariationsOfEntity: v2Info=${JSON.stringify(v2Info)}`);
-		variations['v2Id'    ] = v2Info.concordances[0].concept.id;
-		variations['v2ApiUrl'] = v2Info.concordances[0].concept.apiUrl;
-		variations['v2Stuff'] = { v2Info };
+		if (!v2Info.hasOwnProperty('concordances')) {
+			console.log(`ERROR: fetchLatestVariationsOfEntity: v2Info=${JSON.stringify(v2Info)}: no v2Info.concordances`);
+		} else if (!v2Info.concordances.length > 0) {
+			console.log(`ERROR: fetchLatestVariationsOfEntity: v2Info=${JSON.stringify(v2Info)}: v2Info.concordances.length ! > 1`);
+		} else if (!v2Info.concordances[0].hasOwnProperty('concept') ) {
+			console.log(`ERROR: fetchLatestVariationsOfEntity: v2Info=${JSON.stringify(v2Info)}: no v2Info.concordances[0].concept`);
+		}  else if (!v2Info.concordances[0].concept.hasOwnProperty('id') ) {
+			console.log(`ERROR: fetchLatestVariationsOfEntity: v2Info=${JSON.stringify(v2Info)}: no v2Info.concordances[0].concept.id`);
+		} else {
+			variations['v2Id'    ] = v2Info.concordances[0].concept.id;
+			variations['v2ApiUrl'] = v2Info.concordances[0].concept.apiUrl;
+			variations['v2Stuff'] = { v2Info };
+		}
+		if( !variations.hasOwnProperty('v2Id')) {
+			throw `no v2Id found for v2Info=${JSON.stringify(v2Info)}`;
+		}
+
 		return variations['v2Id'];
 	})
 	.then( v2Id => fetchContent.v2ApiCall(variations['v2Id']) )
 	.then( v2IdDetails => {
-		variations['v2PrefLabel'] = v2IdDetails.prefLabel;
-		variations['v2Stuff']['v2IdDetails'] = v2IdDetails;
+		if (! v2IdDetails.hasOwnProperty('prefLabel')) {
+			console.log(`ERROR: fetchLatestVariationsOfEntity: v2IdDetails=${JSON.stringify(v2IdDetails)}: no v2IdDetails.prefLabel`);
+		} else {
+			variations['v2PrefLabel'] = v2IdDetails.prefLabel;
+			variations['v2Stuff']['v2IdDetails'] = v2IdDetails;
+		}
+		if (! variations.hasOwnProperty('v2PrefLabel')) {
+			throw `no v2PrefLabel found for v2IdDetails=${JSON.stringify(v2IdDetails)}`;
+		}
 		return variations;
 	})
 	.catch( err => {
