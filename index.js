@@ -198,11 +198,19 @@ app.get('/searchByEntityWithFacets/:entity', (req, res) => {
   ;
 });
 
-app.get('/v1v2/:entity', (req, res) => {
+app.get('/v1v2/entity/:entity', (req, res) => {
   const entity = req.params.entity;
 	v1v2.fetchVariationsOfEntity(entity)
   .then( obj => res.json( obj ) )
   ;
+});
+
+app.get('/v1v2/store', (req, res) => {
+  res.json( v1v2.store() );
+});
+
+app.get('/v1v2/store_errors', (req, res) => {
+  res.json( v1v2.store_errors() );
 });
 
 app.get('/tmeIdToV2/:entity', (req, res) => {

@@ -3,6 +3,7 @@
 const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
 const cache        = require('./cache');
+const v1v2         = require('./v1v2');
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 
@@ -279,13 +280,19 @@ function checkAllCoocsForSymmetryProblems(){
 function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	const startInitialSearchMillis = Date.now();
 	let startFacetSearchesMillis;
+	let entitiesAndFacets;
+
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
 			startFacetSearchesMillis = Date.now();
 			return deltaEntities;
 		} )
 		.then( deltaEntities     => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
-		.then( entitiesAndFacets => {
+		.then( entitiesAndFacetsSnapshot => {
+			entitiesAndFacets = entitiesAndFacetsSnapshot;
+		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities));
+		})
+		.then( variationsOfEntities => {
 			const endFacetSearchesMillis = Date.now();
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
@@ -300,6 +307,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
 			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
 			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
+
 			const endPostProcessingMillis = Date.now();
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
@@ -307,9 +315,9 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			summaryData['delta'] = {
 				times : {
 					afterSecs,
-					afterSecs           : new Date(afterSecs * 1000).toISOString(),
+					afterSecsDate       : new Date(afterSecs * 1000).toISOString(),
 					beforeSecs,
-					beforeSecs          : new Date( beforeSecs * 1000).toISOString(),
+					beforeSecsDate      : new Date( beforeSecs * 1000).toISOString(),
 				  intervalCoveredSecs : (beforeSecs - afterSecs),
 					intervalCoveredHrs  : (beforeSecs - afterSecs)/3600,
 				},

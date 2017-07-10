@@ -3,7 +3,41 @@
 const debug = require('debug')('bin:lib:v1v2');
 const fetchContent = require('./fetchContent');
 
-function fetchVariationsOfEntity( entity ){
+const STORE = {}; // {entity : variations}
+const STORE_ERRORS = {}; // {entity : variationsWithError}
+
+function fetchVariationsOfEntityFromCache( entity ){
+
+	let promise;
+
+	if (! STORE.hasOwnProperty(entity) && ! STORE_ERRORS.hasOwnProperty( entity )) {
+
+		promise = fetchLatestVariationsOfEntity( entity )
+			.then( variations => {
+				if (variations.hasOwnProperty('error')) {
+					STORE_ERRORS[entity] = variations;
+				} else  {
+					STORE[entity] = variations;
+				}
+				debug(`fetchVariationsOfEntityFromCache: cache miss for entity=${entity}`)
+			})
+			;
+
+	} else {
+		promise = new Promise( (resolve) => resolve(
+			debug(`fetchVariationsOfEntityFromCache: cache hit for entity=${entity}`)
+		) );
+	}
+
+	return promise
+	.then( () => {
+		const variations = (STORE.hasOwnProperty(entity)) ? STORE[entity] : STORE_ERRORS[entity];
+		return variations;
+	})
+	;
+}
+
+function fetchLatestVariationsOfEntity( entity ){
 	const entityPieces = entity.split(':');
 	const ontology = entityPieces[0];
 	let ontologyWithId, ontologyWithoutId;
@@ -27,11 +61,11 @@ function fetchVariationsOfEntity( entity ){
 	return fetchContent.searchByEntityWithFacets(entity)
 	.then(searchRes => {
 		if (!searchRes.sapiObj) {
-			console.log(`ERROR: fetchVariationsOfEntity: entity=${entity}: no searchRes.sapiObj`);
+			console.log(`ERROR: fetchLatestVariationsOfEntity: entity=${entity}: no searchRes.sapiObj`);
 		} else if (!searchRes.sapiObj.results) {
-			console.log(`ERROR: fetchVariationsOfEntity: entity=${entity}: no searchRes.sapiObj.results`);
+			console.log(`ERROR: fetchLatestVariationsOfEntity: entity=${entity}: no searchRes.sapiObj.results`);
 		} else if (!searchRes.sapiObj.results[0].facets) {
-			console.log(`ERROR: fetchVariationsOfEntity: entity=${entity}: no searchRes.sapiObj.results[0].facets`);
+			console.log(`ERROR: fetchLatestVariationsOfEntity: entity=${entity}: no searchRes.sapiObj.results[0].facets`);
 		} else {
 			for( let facet of searchRes.sapiObj.results[0].facets ){
 				if( facet.name == ontologyWithId ){
@@ -48,7 +82,7 @@ function fetchVariationsOfEntity( entity ){
 	})
 	.then( v1TME => fetchContent.tmeIdToV2(v1TME) )
 	.then( v2Info => {
-		debug( `fetchVariationsOfEntity: v2Info=${JSON.stringify(v2Info)}`);
+		debug( `fetchLatestVariationsOfEntity: v2Info=${JSON.stringify(v2Info)}`);
 		variations['v2Id'    ] = v2Info.concordances[0].concept.id;
 		variations['v2ApiUrl'] = v2Info.concordances[0].concept.apiUrl;
 		variations['v2Stuff'] = { v2Info };
@@ -67,6 +101,26 @@ function fetchVariationsOfEntity( entity ){
 	;
 }
 
+function fetchVariationsOfEntities( entities ){
+	debug(`fetchVariationsOfEntities: entities=${JSON.stringify(entities)}`);
+	const promises = [];
+	const spreadMillis = 5000;
+
+	entities.forEach((entity,index) => {
+		const delay = (index / entities.length) * spreadMillis;
+		const promise = new Promise( (resolve) => setTimeout(() => resolve(
+				fetchVariationsOfEntityFromCache(entity)
+			), delay)
+		);
+		promises.push( promise );
+	});
+
+	return Promise.all(promises);
+}
+
 module.exports = {
-	fetchVariationsOfEntity
+	fetchVariationsOfEntity : fetchVariationsOfEntityFromCache,
+	fetchVariationsOfEntities,
+	store        : function() { return STORE; },
+	store_errors : function() { return STORE_ERRORS; },
 };
