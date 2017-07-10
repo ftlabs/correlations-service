@@ -57,6 +57,7 @@ app.get('/', (req, res) => {
     entity2 : entities[entities.length -1],
     entity1a : entities[1],
     tmeId1 : (correlate.ontology == 'people')? 'TnN0ZWluX1BOX1BvbGl0aWNpYW5fMjcx-UE4=' : 'NDdiMzAyNzctMTRlMy00Zjk1LWEyZjYtYmYwZWIwYWU2NzAy-VG9waWNz',
+    v2ApuUrl1 : 'http://api.ft.com/things/f79cb3d0-3c68-3776-b6ac-43a44609a7d6',
   });
 });
 
@@ -207,6 +208,13 @@ app.get('/v1v2/:entity', (req, res) => {
 app.get('/tmeIdToV2/:entity', (req, res) => {
   const entity = req.params.entity;
 	fetchContent.tmeIdToV2(entity)
+  .then( obj => res.json( obj ) )
+  ;
+});
+
+app.get('/v2ApiCall/', (req, res) => {
+  const url = req.query.url;
+	fetchContent.v2ApiCall(url)
   .then( obj => res.json( obj ) )
   ;
 });

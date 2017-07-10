@@ -240,10 +240,27 @@ function tmeIdToV2( tmeId ){
 	;
 }
 
+function v2ApiCall( apiUrl ){
+	const url = `${apiUrl}?apiKey=${CAPI_KEY}`;
+	debug(`v2ApiCall: url=${url}`);
+	return fetch(url)
+	.then( res   => res.text() )
+	.then( text => {
+		debug(`v2ApiCall: text=${text}`);
+		return text;
+	})
+	.then( text  => JSON.parse(text) )
+	.catch( err => {
+		debug(`v2ApiCall: err=${err}`);
+	})
+	;
+}
+
 module.exports = {
 	article,
 	searchByUUID,
 	searchUnixTimeRange,
 	searchByEntityWithFacets,
 	tmeIdToV2,
+	v2ApiCall,
 };
