@@ -3,7 +3,7 @@ const S3O = require('s3o-middleware');
 
 module.exports = (req, res, next) => {
 
-	const passedToken = req.query.token;
+	const passedToken = req.headers.token;
 
 	debug(`Checking if token is valid`);
 
@@ -20,5 +20,4 @@ module.exports = (req, res, next) => {
 			message : 'The token value passed was invalid.'
 		});
 	}
-
 }
