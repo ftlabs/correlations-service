@@ -17,6 +17,7 @@ When building locally, specify them in a local file, .env (and NB, this must not
 The following are mandatory params, the absence of which will kill the app on startup:
 
 * TOKEN=...
+	* Note: in the absence of token, the application will fall back to S3O. Otherwise, the token is passed to the endpoints as a header.
 * CAPI_KEY=...
 
 optional params
