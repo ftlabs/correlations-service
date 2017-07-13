@@ -295,16 +295,26 @@ function fetchNewlyAppearedEntities(){
 	// look for entities not in that week but which are in the knownEntities,
 	// hence newEntities
 
-	const afterSecs = earliestAfterSecs - (60 * 60 * 24 * 7); // i.e. one week before prev oldest
+	const  afterSecs = earliestAfterSecs - (60 * 60 * 24 * 7); // i.e. one week before prev oldest
 	const beforeSecs = earliestAfterSecs;
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
-			const newEntities = Object.keys(knownEntities).filter(entity => {
+			const newEntitiesWithCount = Object.keys(knownEntities)
+			.filter(entity => {
 				return ! deltaEntities.hasOwnProperty(entity);
+			})
+			.map( entity => {
+				return [entity, knownEntities[entity] ];
 			});
-			newlyAppearedEntities = newEntities;
-			return newEntities;
+			newEntitiesWithCount.sort( (a,b) => {
+				if     ( a[1] > b[1] ) { return -1; }
+				else if( a[1] < b[1] ) { return +1; }
+				else                   { return  0; }
+			});
+
+			newlyAppearedEntities = newEntitiesWithCount;
+			return newEntitiesWithCount;
 		} )
 		;
 }
