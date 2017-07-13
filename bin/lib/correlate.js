@@ -16,6 +16,8 @@ let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity: {entity2: [ent
 
 let biggestIsland = [];
 
+let newlyAppearedEntities = [];
+
 let  latestBeforeSecs = 0; // most recent update time
 let earliestAfterSecs = 0; // oldest update time
 
