@@ -290,24 +290,34 @@ function calcIslandSortedByCount(island){
 	return islanders;
 }
 
+function fetchNewlyAppearedEntities(){
+
+}
+
 // tie together the fetching of new data, and the post-processing of it
 function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	const startInitialSearchMillis = Date.now();
 	let startFacetSearchesMillis;
+	let endFacetSearchesMillis;
+	let startVariationsMillis;
+	let endVariationsMillis;
+	let startPostProcessingMillis;
 	let entitiesAndFacets;
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
 			startFacetSearchesMillis = Date.now();
-			return deltaEntities;
+			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities);
 		} )
-		.then( deltaEntities     => getAllEntityFacets(afterSecs, beforeSecs, deltaEntities) )
 		.then( entitiesAndFacetsSnapshot => {
 			entitiesAndFacets = entitiesAndFacetsSnapshot;
+			endFacetSearchesMillis = Date.now();
+			startVariationsMillis = Date.now();
 		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities));
 		})
 		.then( variationsOfEntities => {
-			const endFacetSearchesMillis = Date.now();
+			endVariationsMillis = Date.now();
+			startPostProcessingMillis = Date.now();
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
 			if (symmetryProblems.length > 0) {
@@ -316,6 +326,9 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			 	console.log(`DEBUG: no symmetryProblems found`);
 		 	}
 			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
+			return newCounts;
+		} )
+		.then( newCounts => {
 			// post-processing: re-calc all the islands, and link entities to them
 			allIslands         = findIslands(allCoocs);
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
@@ -345,9 +358,10 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 				},
 				timings : {
 					initialSearchMillis  : (startFacetSearchesMillis - startInitialSearchMillis),
-					facetSearchesMillis  : (endFacetSearchesMillis - startFacetSearchesMillis),
+					facetSearchesMillis  : (endFacetSearchesMillis   - startFacetSearchesMillis),
 					millisPerFacetSearch : Math.round((endFacetSearchesMillis - startFacetSearchesMillis) / ((numDeltaEntities==0)? 1 : numDeltaEntities)),
-					postProcessingMillis : (endPostProcessingMillis - endFacetSearchesMillis)
+					variationsMillis     : (endVariationsMillis      - startVariationsMillis),
+					postProcessingMillis : (endPostProcessingMillis  - startPostProcessingMillis),
 				}
 			};
 
