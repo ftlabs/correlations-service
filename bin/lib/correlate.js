@@ -778,6 +778,7 @@ function getSummaryData(){
 			allIslands : allIslands.length,
 			largestIslandSize: largestIslandSize,
 			numDistinctCoocPairs : countAllCoocPairs(),
+			numNewlyAppearedEntities : newlyAppearedEntities.length,
 		},
 	};
 }
