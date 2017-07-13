@@ -1,5 +1,5 @@
 const debug = require('debug')('bin:lib:check-token');
-const S3O = require('s3o-middleware');
+const S3O = require('@financial-times/s3o-middleware');
 
 module.exports = (req, res, next) => {
 
