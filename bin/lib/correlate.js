@@ -318,6 +318,8 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	let endVariationsMillis;
 	let startNewlyAppearedMillis;
 	let endNewlyAppearedMillis;
+	let startUpdatesMillis;
+	let endUpdatesMillis;
 	let startPostProcessingMillis;
 	let endPostProcessingMillis;
 	let entitiesAndFacets;
@@ -325,17 +327,25 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
 			startFacetSearchesMillis = Date.now();
-			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities);
+			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities)
+			.then( entitiesAndFacetsSnapshot => {
+				entitiesAndFacets = entitiesAndFacetsSnapshot;
+				endFacetSearchesMillis = Date.now();
+				return entitiesAndFacetsSnapshot;
+			})
+			;
 		} )
 		.then( entitiesAndFacetsSnapshot => {
-			entitiesAndFacets = entitiesAndFacetsSnapshot;
-			endFacetSearchesMillis = Date.now();
 			startVariationsMillis = Date.now();
-		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities));
+		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities))
+			.then( variationsOfEntities => {
+				endVariationsMillis = Date.now();
+				return variationsOfEntities;
+			})
+			;
 		})
 		.then( variationsOfEntities => {
-			endVariationsMillis = Date.now();
-			startPostProcessingMillis = Date.now();
+			startUpdatesMillis = Date.now();
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
 			if (symmetryProblems.length > 0) {
@@ -344,6 +354,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			 	console.log(`DEBUG: no symmetryProblems found`);
 		 	}
 			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
+			endUpdatesMillis = Date.now();
 			return newCounts;
 		} )
 		.then( newCounts => {
@@ -390,7 +401,8 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 					facetSearchesMillis  : (endFacetSearchesMillis   - startFacetSearchesMillis),
 					millisPerFacetSearch : Math.round((endFacetSearchesMillis - startFacetSearchesMillis) / ((numDeltaEntities==0)? 1 : numDeltaEntities)),
 					variationsMillis     : (endVariationsMillis      - startVariationsMillis),
-					newlyAppearedMillis : (endNewlyAppearedMillis  - startNewlyAppearedMillis),
+					updatesMillis        : (endUpdatesMillis         - startUpdatesMillis),
+					newlyAppearedMillis  : (endNewlyAppearedMillis   - startNewlyAppearedMillis),
 					postProcessingMillis : (endPostProcessingMillis  - startPostProcessingMillis),
 				}
 			};
@@ -766,6 +778,7 @@ function getAllData(){
 	data[          'allCoocs'] = allCoocs;
 	data[        'allIslands'] = allIslands;
 	data['allIslandsByEntity'] = allIslandsByEntity;
+	data['newlyAppearedEntities'] = newlyAppearedEntities;
 
 	return data;
 }
