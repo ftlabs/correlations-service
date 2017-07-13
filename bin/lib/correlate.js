@@ -929,4 +929,5 @@ module.exports = {
 	logbook     : logbook,
 	ontology    : function() { return ONTOLOGY; },
 	biggestIsland : function(){ return biggestIsland; },
+	newlyAppearedEntities : function(){ return newlyAppearedEntities; },
 };

@@ -138,6 +138,10 @@ app.get('/allEntities', (req, res) => {
 	res.json( correlate.allEntities() );
 });
 
+app.get('/newlyAppearedEntities', (req, res) => {
+	res.json( correlate.newlyAppearedEntities() );
+});
+
 app.get('/allEntitiesCountsPairs', (req, res) => {
 	res.json( correlate.allEntitiesCountsPairs() );
 });
