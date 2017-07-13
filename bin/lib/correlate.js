@@ -291,7 +291,22 @@ function calcIslandSortedByCount(island){
 }
 
 function fetchNewlyAppearedEntities(){
+	// do a facet search for the previous week (using earliestAfterSecs)
+	// look for entities not in that week but which are in the knownEntities,
+	// hence newEntities
 
+	const afterSecs = earliestAfterSecs - (60 * 60 * 24 * 7); // i.e. one week before prev oldest
+	const beforeSecs = earliestAfterSecs;
+
+	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
+		.then( deltaEntities => {
+			const newEntities = Object.keys(knownEntities).filter(entity => {
+				return ! deltaEntities.hasOwnProperty(entity);
+			});
+			newlyAppearedEntities = newEntities;
+			return newEntities;
+		} )
+		;
 }
 
 // tie together the fetching of new data, and the post-processing of it
@@ -301,7 +316,10 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	let endFacetSearchesMillis;
 	let startVariationsMillis;
 	let endVariationsMillis;
+	let startNewlyAppearedMillis;
+	let endNewlyAppearedMillis;
 	let startPostProcessingMillis;
+	let endPostProcessingMillis;
 	let entitiesAndFacets;
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
@@ -329,6 +347,16 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			return newCounts;
 		} )
 		.then( newCounts => {
+			startNewlyAppearedMillis = Date.now();
+			return fetchNewlyAppearedEntities()
+			.then( newEntities => {
+				endNewlyAppearedMillis = Date.now();
+				return newCounts;
+			})
+			;
+		})
+		.then( newCounts => {
+			startPostProcessingMillis = Date.now();
 			// post-processing: re-calc all the islands, and link entities to them
 			allIslands         = findIslands(allCoocs);
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
@@ -336,7 +364,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
 			biggestIsland = calcIslandSortedByCount( (allIslands.length > 0)? allIslands[0] : [] );
 
-			const endPostProcessingMillis = Date.now();
+			endPostProcessingMillis = Date.now();
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
 			const summaryData = getSummaryData();
@@ -354,13 +382,15 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 					newEntities : newCounts.countNewEntities,
 					coocPairs : newCounts.countCoocPairs,
 					newCoocPairs : newCounts.countNewCoocPairs,
-					numSapiRequests : numDeltaEntities + 1,
+					numSapiRequests : numDeltaEntities + 2,
+					numNewlyAppearedEntities : newlyAppearedEntities.length,
 				},
 				timings : {
 					initialSearchMillis  : (startFacetSearchesMillis - startInitialSearchMillis),
 					facetSearchesMillis  : (endFacetSearchesMillis   - startFacetSearchesMillis),
 					millisPerFacetSearch : Math.round((endFacetSearchesMillis - startFacetSearchesMillis) / ((numDeltaEntities==0)? 1 : numDeltaEntities)),
 					variationsMillis     : (endVariationsMillis      - startVariationsMillis),
+					newlyAppearedMillis : (endNewlyAppearedMillis  - startNewlyAppearedMillis),
 					postProcessingMillis : (endPostProcessingMillis  - startPostProcessingMillis),
 				}
 			};
