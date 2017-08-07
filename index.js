@@ -243,7 +243,7 @@ function startListening(){
 	});
 }
 
-let startupRangeSecs = process.env.STARTUP_RANGE_SECS;
+let startupRangeSecs = (process.env.STARTUP_RANGE_SECS !== undefined)? parseInt(process.env.STARTUP_RANGE_SECS) : 0;
 if (startupRangeSecs > 0) {
   console.log(`startup: startupRangeSecs=${startupRangeSecs}`);
 	correlate.fetchUpdateCorrelationsEarlier(startupRangeSecs)
