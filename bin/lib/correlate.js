@@ -26,6 +26,8 @@ const ignoreEntities = {
 };
 
 const AWeekOfSecs = 604800;
+const MAX_INTERVAL_SECS = AWeekOfSecs * 2;
+debug(`startup: MAX_INTERVAL_SECS=${MAX_INTERVAL_SECS}`);
 
 const logbook = [];
 function logItem( location, obj ){
@@ -438,8 +440,8 @@ function fetchUpdateCorrelationsEarlier(intervalSecs=0) {
 		throw new Error(`fetchUpdateCorrelationsEarlier: could not handle intervalSecs`);
 	}
 
-	if (intervalSecs > AWeekOfSecs || intervalSecs < 0) {
-		intervalSecs = AWeekOfSecs;
+	if (intervalSecs > MAX_INTERVAL_SECS || intervalSecs < 0) {
+		intervalSecs = MAX_INTERVAL_SECS;
 	}
 
 	const earliestSecs = (earliestAfterSecs == 0)? Math.floor( Date.now() / 1000 ) : earliestAfterSecs;
