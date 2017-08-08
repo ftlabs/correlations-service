@@ -581,10 +581,15 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 				debug('fetchCalcChainWithArticlesBetween: sapiObj: no results[0].results');
 			} else {
 				articles = sapiObj.results[0].results.map(result => {
+					let imageUrl = undefined;
+					if (result.images && result.images.length > 0) {
+						imageUrl = result.images[0].url;
+					}
 					return {
 						id    : result.id,
 						title : result.title.title,
 						initialPubDate : result.lifecycle.initialPublishDateTime,
+						imageUrl : imageUrl,
 					};
 				})
 			}

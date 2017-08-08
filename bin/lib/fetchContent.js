@@ -70,7 +70,7 @@ function constructSAPIQuery( params ) {
 		queryString : "",
 	   maxResults : 1,
 		     offset : 0,
-		    aspects : [ "title",  "lifecycle"], // [ "title", "location", "summary", "lifecycle", "metadata"],
+		    aspects : [ "title",  "lifecycle", "images"], // [ "title", "location", "summary", "lifecycle", "metadata"],
 		constraints : [],
 		   ontology : "people",
 	};
