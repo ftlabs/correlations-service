@@ -123,6 +123,38 @@ function article(uuid) {
 	;
 }
 
+const CACHED_ARTICLE_IMAGE_URLS = {};
+
+function articleImageUrl(uuid){
+	// lookup the full article details,
+	// then just return the image details: mainImage.members[0].binaryUrl
+
+	if (CACHED_ARTICLE_IMAGE_URLS.hasOwnProperty( uuid )) {
+		const imageUrl = CACHED_ARTICLE_IMAGE_URLS[uuid];
+		debug(`articleImageUrl: uuid=${uuid}: cache hit: imageUrl=${imageUrl}`);
+		return Promise.resolve( imageUrl );
+	}
+
+	return article(uuid)
+	.then( json => {
+			let imageUrl = null;
+			if (! json.mainImage ) {
+				debug(`articleImageUrl: uuid=${uuid}: no mainImage` );
+			} else if (! json.mainImage.members) {
+				debug(`articleImageUrl: uuid=${uuid}: no mainImage.members`);
+			} else if (json.mainImage.members.length == 0) {
+				debug(`articleImageUrl: uuid=${uuid}: empty mainImage.members`);
+			} else if (! json.mainImage.members[0].binaryUrl) {
+				debug(`articleImageUrl: uuid=${uuid}: no json.mainImage.members[0].binaryUrl`);
+			} else {
+				debug(`articleImageUrl: uuid=${uuid}: cache miss: imageUrl=${imageUrl}`);
+				imageUrl = json.mainImage.members[0].binaryUrl;
+			}
+			CACHED_ARTICLE_IMAGE_URLS[uuid] = imageUrl
+			return imageUrl;
+	});
+}
+
 const MAX_ATTEMPTS = 5;
 
 function makeFetchAttempts(address, options, attempt = 0){
@@ -258,6 +290,7 @@ function v2ApiCall( apiUrl ){
 
 module.exports = {
 	article,
+	articleImageUrl,
 	searchByUUID,
 	searchUnixTimeRange,
 	searchByEntityWithFacets,
