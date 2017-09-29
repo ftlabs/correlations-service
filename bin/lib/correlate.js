@@ -564,8 +564,64 @@ function createPromisesToPopulateChainDetails( chainDetails, spreadMillis = 100)
 	return promises;
 }
 
-// function extractArticleDetailsFromSapiObj
-// function lookupImageFromCapi...
+function extractArticleDetailsFromSapiObj( sapiObj ){
+	let articles = [];
+	if (! sapiObj.results ) {
+		debug('extractArticleDetailsFromSapiObj: sapiObj: no results');
+	} else if( ! sapiObj.results[0] ) {
+		debug('extractArticleDetailsFromSapiObj: sapiObj: no results[0]');
+	} else if( ! sapiObj.results[0].results ) {
+		debug('extractArticleDetailsFromSapiObj: sapiObj: no results[0].results');
+	} else {
+		articles = sapiObj.results[0].results.map(result => {
+			let imageUrl = undefined;
+			if (result.images && result.images.length > 0) {
+				imageUrl = result.images[0].url;
+			}
+			return {
+				id    : result.id,
+				title : result.title.title,
+				initialPubDate : result.lifecycle.initialPublishDateTime,
+				imageUrl : imageUrl, // NB: this is the thumbnail image
+			};
+		})
+	}
+	return articles;
+}
+
+function createPromisesToLookupCapiForChainDetails( chainDetails, spreadMillis = 100 ){
+	// create a promise for each article in each link,
+	// to look up the image details from CAPI v2,
+	// inserting the new field into the article obj: mainImageUrl, which might be null
+
+	// count the total num of articles first so we can spread the calls out
+	let numArticles = 1; // ensure no divide by 0
+	chainDetails['articlesPerLink'].forEach(articles => { numArticles = numArticles + articles.length; });
+
+	// loop over each link, then over each article in the link
+	let promises = [];
+	let index = -1;
+	chainDetails['articlesPerLink'].forEach(articles => {
+		index ++;
+		const delay = (index / numArticles) * spreadMillis;
+		articles.forEach( article => {
+			const promise = new Promise( (resolve) => setTimeout(() => resolve(
+					fetchContent.articleImageUrl(article.id)
+					.then( url => {
+						article.mainImageUrl = url;
+					})
+					.catch( err => {
+						console.log( `createPromisesToLookupCapiForChainDetails: promise for article.id=${article.id}, err=${err}`);
+						return;
+					})
+				), delay)
+			);
+			promises.push( promise );
+		});
+	});
+
+	return promises;
+}
 
 
 function fetchCalcChainWithArticlesBetween(entity1, entity2) {
@@ -580,30 +636,13 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 	return Promise.all(promisesToPopulateChainDetails)
 	.then( searchResponses => searchResponses.map(sr => {return sr.sapiObj}) )
 	.then( sapiObjs => {
-		chainDetails['articlesPerLink'] = sapiObjs.map(sapiObj => {
-			let articles = [];
-			if (! sapiObj.results ) {
-				debug('fetchCalcChainWithArticlesBetween: sapiObj: no results');
-			} else if( ! sapiObj.results[0] ) {
-				debug('fetchCalcChainWithArticlesBetween: sapiObj: no results[0]');
-			} else if( ! sapiObj.results[0].results ) {
-				debug('fetchCalcChainWithArticlesBetween: sapiObj: no results[0].results');
-			} else {
-				articles = sapiObj.results[0].results.map(result => {
-					let imageUrl = undefined;
-					if (result.images && result.images.length > 0) {
-						imageUrl = result.images[0].url;
-					}
-					return {
-						id    : result.id,
-						title : result.title.title,
-						initialPubDate : result.lifecycle.initialPublishDateTime,
-						imageUrl : imageUrl,
-					};
-				})
-			}
-			return articles;
-		});
+		chainDetails['articlesPerLink'] = sapiObjs.map(extractArticleDetailsFromSapiObj);
+	})
+	.then( () => {
+		return createPromisesToLookupCapiForChainDetails(chainDetails);
+	})
+	.then( promisesForImages => {
+		return Promise.all( promisesForImages );
 	})
 	.then( () => chainDetails )
 	;
