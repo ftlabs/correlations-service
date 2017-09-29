@@ -540,16 +540,11 @@ function calcChainBetween(entity1, entity2) {
 	}
 }
 
-function fetchCalcChainWithArticlesBetween(entity1, entity2) {
-	const chainDetails = calcChainBetween(entity1, entity2);
-
-	chainDetails['articlesPerLink'] = [];
-
+function createPromisesToPopulateChainDetails( chainDetails, spreadMillis = 100){
 	// create a promise for each link in the chain,
 	// to search for article titles where both entities in the link co-occur.
 	// The promises are spread out in time to avoid breaking node.
 
-	const spreadMillis = 100;
 	let promises = [];
 	chainDetails.chain.forEach((entity,index) => {
 		if (index == 0) { return; }
@@ -566,9 +561,23 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 		promises.push( promise );
 	});
 
+	return promises;
+}
+
+// function extractArticleDetailsFromSapiObj
+// function lookupImageFromCapi...
+
+
+function fetchCalcChainWithArticlesBetween(entity1, entity2) {
+	const chainDetails = calcChainBetween(entity1, entity2);
+
+	chainDetails['articlesPerLink'] = [];
+
+	const promisesToPopulateChainDetails = createPromisesToPopulateChainDetails(chainDetails);
+
 	// process each search result to get the list of titles for each link
 
-	return Promise.all(promises)
+	return Promise.all(promisesToPopulateChainDetails)
 	.then( searchResponses => searchResponses.map(sr => {return sr.sapiObj}) )
 	.then( sapiObjs => {
 		chainDetails['articlesPerLink'] = sapiObjs.map(sapiObj => {
