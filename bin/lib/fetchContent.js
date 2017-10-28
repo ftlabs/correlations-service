@@ -117,8 +117,7 @@ function article(uuid) {
 	debug(`uuid=${uuid}`);
 	const capiUrl = `${CAPI_PATH}${uuid}?apiKey=${CAPI_KEY}`;
 
-	return fetchWithTiming(capiUrl)
-	.then( res   => res.text() )
+	return fetchResText(capiUrl)
 	.then( text  => JSON.parse(text) )
 	;
 }
@@ -157,29 +156,50 @@ function articleImageUrl(uuid){
 
 const FetchTimings = {};
 
-function recordFetchTiming( method, millis ){
+function recordFetchTiming( method, timing, resOk, status, statusText ){
 	if (!FetchTimings.hasOwnProperty(method)) {
 		FetchTimings[method] = [];
 	}
-	FetchTimings[method].push(millis);
+	FetchTimings[method].push({
+		timing,
+		resOk,
+		status,
+		statusText
+	});
 }
 
 function summariseFetchTimings(history=10){
-	// loop over keys, construct map of avg and last few timings per keys
 	const summary = {};
 	Object.keys(FetchTimings).forEach( method => {
 		const recentFew = FetchTimings[method].slice(- history)
 		const count = recentFew.length;
-		const sum = recentFew.reduce((acc, curr) => {return acc + curr});
-		const mean = sum / count;
-		const max = recentFew.reduce((acc, curr) => {return Math.max(acc, curr);});
-		const min = recentFew.reduce((acc, curr) => {return Math.min(acc, curr);});
+		let statusesNotOk = [];
+		let numOk = 0;
+		let numNotOk = 0;
+		let sum = 0;
+		let max = 0;
+		let min = -1;
+		recentFew.forEach( item => {
+			if (item.resOk) {
+				numOk = numOk + 1;
+			} else {
+				numNotOk = numNotOk + 1;
+				statusesNotOk.push({ status: item.status, statusText: item.statusText});
+			}
+
+			sum = sum + item.timing
+			max = Math.max(max, item.timing);
+			min = (min == -1)? item.timing : Math.min(min, item.timing);
+		});
 		summary[method] = {
 			totalCount : FetchTimings[method].length,
 			count,
-			mean,
+			mean : sum / count,
 			max,
 			min,
+			numOk,
+			numNotOk,
+			statusesNotOk,
 		};
 	});
 
@@ -187,20 +207,24 @@ function summariseFetchTimings(history=10){
 }
 
 function fetchWithTiming(url, options={}) {
-	const method = (options && options.method == 'POST')? 'POST' : 'GET';
 	const startMillis = Date.now();
 	return fetch(url, options)
 	.then( res => {
 		const endMillis = Date.now();
-		recordFetchTiming( method, endMillis - startMillis);
-		return res;
+		const timing = endMillis - startMillis;
+		return { res, timing };
 	})
 }
 
 function fetchResText(url, options){
 	return fetchWithTiming(url, options)
-	.then(res => {
-		if(res && res.ok){
+	.then(resWithTiming => {
+		const method = (options && options.method == 'POST')? 'POST' : 'GET';
+		const res = resWithTiming.res;
+		const resOk = (res && res.ok);
+		const timing = resWithTiming.timing;
+		recordFetchTiming( method, timing, resOk, res.status, res.statusText);
+		if(resOk){
 			return res;
 		} else {
 			throw new Error(`fetchResText: res not ok: res.status=${res['status']}, res.statusText=${res['statusText']}, url=${url}, options=${JSON.stringify(options)}`);
