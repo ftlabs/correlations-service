@@ -23,7 +23,8 @@ When building locally, specify them in a local file, .env (and NB, this must not
 ## Optional Environment params:
 
 * ONTOLOGY, default value is 'people', but could also be 'organisations'
-* STARTUP_RANGE_SECS, default is 0, what pre-processing to do on startup (before listening), i.e. what interval to look for articles. Will delay the app on startup. Must not take longer than 25ish seconds. If the pre-processing fails, the app will no start.
+* STARTUP_RANGE_SECS, default is 0, what pre-processing to do on startup (before listening), i.e. what interval to look for articles. Will delay the app on startup. Must not take longer than 25ish seconds. If the pre-processing fails, the app will not start.
+* POST_STARTUP_RANGE_SECS, default is 0, what processing to do immediately after startup (after listening), i.e. what interval to look for articles.
 * UPDATE_EVERY_SECS, default 0, to poll for the latest articles every N secs and incorporate them into the stats
 
 ## Environment params for local builds:
