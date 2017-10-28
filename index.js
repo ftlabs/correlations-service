@@ -252,8 +252,8 @@ if (startupRangeSecs > 0) {
 		startListening();
 	})
 	.catch( err => {
-		console.log( `startup: err=${err}`);
-		startListening();
+		console.log( `ERROR: startup: err=${err}`);
+		// startListening();
 	})
 } else {
 	startListening();

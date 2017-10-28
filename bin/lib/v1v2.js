@@ -1,5 +1,7 @@
 const debug = require('debug')('bin:lib:v1v2');
 const fetchContent = require('./fetchContent');
+const directly     = require('./directly'); 	// trying Rhys' https://github.com/wheresrhys/directly
+const V1V2_CONCURRENCE = (process.env.hasOwnProperty('V1V2_CONCURRENCE'))? process.env.V1V2_CONCURRENCE : 4;
 
 const STORE = {}; // {entity : variations}
 const STORE_ERRORS = {}; // {entity : variationsWithError}
@@ -124,19 +126,31 @@ function fetchLatestVariationsOfEntity( entity ){
 
 function fetchVariationsOfEntities( entities ){
 	debug(`fetchVariationsOfEntities: entities=${JSON.stringify(entities)}`);
-	const promises = [];
-	const spreadMillis = 5000;
+	// const promises = [];
+	// const spreadMillis = 5000;
+	//
+	// entities.forEach((entity,index) => {
+	// 	const delay = (index / entities.length) * spreadMillis;
+	// 	const promise = new Promise( (resolve) => setTimeout(() => resolve(
+	// 			fetchVariationsOfEntityFromCache(entity)
+	// 		), delay)
+	// 	);
+	// 	promises.push( promise );
+	// });
+	// return Promise.all(promises);
 
-	entities.forEach((entity,index) => {
-		const delay = (index / entities.length) * spreadMillis;
-		const promise = new Promise( (resolve) => setTimeout(() => resolve(
-				fetchVariationsOfEntityFromCache(entity)
-			), delay)
-		);
-		promises.push( promise );
+	const entityPromisers = entities.map( entity => {
+		return function () {
+			return fetchVariationsOfEntityFromCache(entity)
+			.catch( err => {
+				console.log( `ERROR: fetchVariationsOfEntities: promise for entity=${entity}, err=${err}`);
+				return;
+			})
+			;
+		}
 	});
 
-	return Promise.all(promises);
+	return directly(V1V2_CONCURRENCE, entityPromisers);
 }
 
 module.exports = {
