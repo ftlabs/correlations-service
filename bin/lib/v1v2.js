@@ -1,10 +1,10 @@
-// This module makes use of 'node-fetch' to acces SAPI
-
 const debug = require('debug')('bin:lib:v1v2');
 const fetchContent = require('./fetchContent');
 
 const STORE = {}; // {entity : variations}
 const STORE_ERRORS = {}; // {entity : variationsWithError}
+
+// 'variations' refers to the assorted values for an entity from v1 and v2
 
 function fetchVariationsOfEntityFromCache( entity ){
 
