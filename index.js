@@ -274,15 +274,6 @@ function postStartup() {
   ;
 }
 
-startup()
-.then(() => postStartup() )
-.catch( err => {
-  console.log(`ERROR: on startup: err=${err}`);
-})
-;
-
-//---
-
 function updateEverySoOften(count=0){
   let updateEverySecs = process.env.UPDATE_EVERY_SECS;
   let updateEveryMillis = ((updateEverySecs == '')? 0 : parseInt(updateEverySecs)) * 1000;
@@ -298,4 +289,13 @@ function updateEverySoOften(count=0){
   }
 }
 
-updateEverySoOften();
+//---
+
+startup()
+.then(() => postStartup()        )
+.then(() => updateEverySoOften() )
+.then(() => console.log('full startup completed.') )
+.catch( err => {
+  console.log(`ERROR: on startup: err=${err}`);
+})
+;
