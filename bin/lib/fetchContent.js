@@ -196,15 +196,24 @@ function search(params) {
 	};
 	debug(`search: sapiQuery=${JSON.stringify(sapiQuery)}`);
 
-	return makeFetchAttempts(sapiUrl, options)
+	return fetch(sapiUrl, options)
+	.then(res => {
+		if(res && res.ok){
+			return res;
+		} else {
+			console.log(`ERROR: search: res not fab: sapiUrl=${sapiUrl}, options=${JSON.stringify(options)},
+			res.status=${res['status']}, res.statusText=${res['statusText']}`);
+			throw new Error(`search: fetch failed: sapiUrl=${sapiUrl}, options=${JSON.stringify(options)}`);
+		}
+	})
 	.then( res  => res.text() )
 	.then( text => {
 		let sapiObj;
 		try {
 		 	sapiObj = JSON.parse(text);
 		}
-		catch( e ){
-			console.log(`ERROR: search: e=${e},
+		catch( err ){
+			console.log(`ERROR: search: JSON.parse: err=${err},
 				text=${text},
 				params=${params}`);
 		}

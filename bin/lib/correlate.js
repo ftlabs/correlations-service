@@ -73,7 +73,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
-	debug(`getAllEntityFacets: num entities=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
+	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
 	// const initialMillis = 100;
 	// const spreadMillis = 5000; // spread out these fetches to try and avoid a node problem
 	// const promises = entitiesList.map((entity,index) => {
@@ -334,6 +334,7 @@ function fetchNewlyAppearedEntities(){
 
 // tie together the fetching of new data, and the post-processing of it
 function fetchUpdateCorrelations(afterSecs, beforeSecs) {
+	console.log(`fetchUpdateCorrelations: afterSecs=${afterSecs}, beforeSecs=${beforeSecs}`);
 	const startInitialSearchMillis = Date.now();
 	let startFacetSearchesMillis;
 	let endFacetSearchesMillis;
@@ -349,6 +350,8 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
+			console.log(`fetchUpdateCorrelations: num deltaEntities=${Object.keys(deltaEntities).length}, deltaEntities=${JSON.stringify(deltaEntities, null, 2)}`);
+
 			startFacetSearchesMillis = Date.now();
 			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities)
 			.then( entitiesAndFacetsSnapshot => {
@@ -372,9 +375,9 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
 			if (symmetryProblems.length > 0) {
-				console.log(`ERROR: symmetryProblems: ${JSON.stringify(symmetryProblems, null, 2)}`);
+				console.log(`ERROR: fetchUpdateCorrelations: symmetryProblems: ${JSON.stringify(symmetryProblems, null, 2)}`);
 			} else {
-			 	console.log(`DEBUG: no symmetryProblems found`);
+			 	debug(`fetchUpdateCorrelations: no symmetryProblems found`);
 		 	}
 			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
 			endUpdatesMillis = Date.now();
@@ -402,7 +405,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
 			const summaryData = getSummaryData();
-			summaryData['delta'] = {
+			const delta = {
 				times : {
 					afterSecs,
 					afterSecsDate       : new Date(afterSecs * 1000).toISOString(),
@@ -429,6 +432,9 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 					postProcessingMillis : (endPostProcessingMillis  - startPostProcessingMillis),
 				}
 			};
+
+			summaryData['delta'] = delta;
+			console.log(`fetchUpdateCorrelations: delta=${JSON.stringify(delta, null, 2)}`);
 
 			cache.clearAll();
 			return summaryData;
@@ -564,7 +570,7 @@ function createPromisesToPopulateChainDetails( chainDetails, spreadMillis = 100)
 		const promise = new Promise( (resolve) => setTimeout(() => resolve(
 				fetchContent.searchUnixTimeRange(earliestAfterSecs, latestBeforeSecs, { constraints : [prevEntity, entity], maxResults : 100,})
 				.catch( err => {
-					console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+					console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
 					return;
 				})
 			), delay)
