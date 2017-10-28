@@ -1,11 +1,11 @@
-// This module makes use of 'node-fetch' to acces SAPI
-
 const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
 const cache        = require('./cache');
-const v1v2         = require('./v1v2');
+const v1v2         = require('./v1v2'); // obtain all the CAPI v1 and v2 variants of an entity
+const directly     = require('./directly'); 	// trying Rhys' https://github.com/wheresrhys/directly
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
+const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
 
 const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
@@ -74,21 +74,32 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
 	debug(`getAllEntityFacets: num entities=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
-	const initialMillis = 100;
-	const spreadMillis = 5000; // spread out these fetches to try and avoid a node problem
-	const promises = entitiesList.map((entity,index) => {
-		const delay = (index / entitiesList.length) * spreadMillis;
-		return new Promise( (resolve) => setTimeout(() => resolve(
-				fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
-				.catch( err => {
-					console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
-					return;
-				})
-			), initialMillis + delay)
-		)
+	// const initialMillis = 100;
+	// const spreadMillis = 5000; // spread out these fetches to try and avoid a node problem
+	// const promises = entitiesList.map((entity,index) => {
+	// 	const delay = (index / entitiesList.length) * spreadMillis;
+	// 	return new Promise( (resolve) => setTimeout(() => resolve(
+	// 			fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
+	// 			.catch( err => {
+	// 				console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+	// 				return;
+	// 			})
+	// 		), initialMillis + delay)
+	// 	)
+	// });
+
+	const entityPromisers = entitiesList.map( entity => {
+		return function () {
+			return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
+					.catch( err => {
+						console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+						return;
+					})
+					;
+		};
 	});
 
-	return Promise.all(promises)
+	return directly(FACETS_CONCURRENCE, entityPromisers)
 		.then( searchResponses => {
 			const entityFacets = {};
 			for( let searchResponse of searchResponses ){
