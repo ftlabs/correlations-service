@@ -184,6 +184,19 @@ function makeFetchAttempts(address, options, attempt = 0){
   }
 }
 
+function fetchResText(url, options){
+	return fetch(url, options)
+	.then(res => {
+		if(res && res.ok){
+			return res;
+		} else {
+			throw new Error(`fetchResText: res not ok: res.status=${res['status']}, res.statusText=${res['statusText']}, url=${url}, options=${JSON.stringify(options)}`);
+		}
+	})
+	.then( res  => res.text() )
+	;
+}
+
 function search(params) {
 	const sapiUrl = `${SAPI_PATH}?apiKey=${CAPI_KEY}`;
 	const sapiQuery = constructSAPIQuery( params );
@@ -196,16 +209,7 @@ function search(params) {
 	};
 	debug(`search: sapiQuery=${JSON.stringify(sapiQuery)}`);
 
-	return fetch(sapiUrl, options)
-	.then(res => {
-		if(res && res.ok){
-			return res;
-		} else {
-			throw new Error(`res not ok: sapiUrl=${sapiUrl}, options=${JSON.stringify(options)},
-			res.status=${res['status']}, res.statusText=${res['statusText']}`);
-		}
-	})
-	.then( res  => res.text() )
+	return fetchResText(sapiUrl, options)
 	.then( text => {
 		let sapiObj;
 		try {
@@ -268,8 +272,7 @@ function searchByEntityWithFacets( entity ){
 function tmeIdToV2( tmeId ){
 	const url = tmeIdToV2Url( tmeId );
 	debug(`tmeIdToV2: tmeId=${tmeId}, url=${url}`);
-	return fetch(url)
-	.then( res   => res.text() )
+	return fetchResText(url)
 	.then( text => {
 		debug(`tmeIdToV2: text=${text}`);
 		return text;
@@ -284,8 +287,7 @@ function tmeIdToV2( tmeId ){
 function v2ApiCall( apiUrl ){
 	const url = `${apiUrl}?apiKey=${CAPI_KEY}`;
 	debug(`v2ApiCall: url=${url}`);
-	return fetch(url)
-	.then( res   => res.text() )
+	return fetchResText(url)
 	.then( text => {
 		debug(`v2ApiCall: text=${text}`);
 		return text;
