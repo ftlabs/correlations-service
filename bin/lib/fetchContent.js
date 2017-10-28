@@ -201,9 +201,8 @@ function search(params) {
 		if(res && res.ok){
 			return res;
 		} else {
-			console.log(`ERROR: search: res not fab: sapiUrl=${sapiUrl}, options=${JSON.stringify(options)},
+			throw new Error(`res not ok: sapiUrl=${sapiUrl}, options=${JSON.stringify(options)},
 			res.status=${res['status']}, res.statusText=${res['statusText']}`);
-			throw new Error(`search: fetch failed: sapiUrl=${sapiUrl}, options=${JSON.stringify(options)}`);
 		}
 	})
 	.then( res  => res.text() )
@@ -213,7 +212,7 @@ function search(params) {
 		 	sapiObj = JSON.parse(text);
 		}
 		catch( err ){
-			console.log(`ERROR: search: JSON.parse: err=${err},
+			throw new Error(`JSON.parse: err=${err},
 				text=${text},
 				params=${params}`);
 		}
@@ -224,6 +223,7 @@ function search(params) {
 	} )
 	.catch( err => {
 		console.log(`ERROR: search: err=${err}.`);
+		return { params }; // NB, no sapiObj...
 	})
 	;
 }

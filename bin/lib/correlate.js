@@ -45,7 +45,9 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 		.then( sapiObj => {
 			const deltaEntities = {};
 			let numResults;
-			if (! sapiObj.results ) {
+			if( ! sapiObj ) {
+				debug('getLatestEntitiesMentioned: no sapiObj');
+			} else if (! sapiObj.results ) {
 				debug('getLatestEntitiesMentioned: no results');
 			} else if( ! sapiObj.results[0] ) {
 				debug('getLatestEntitiesMentioned: no results[0]');
@@ -106,7 +108,9 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 				const targetEntity = searchResponse.params.constraints[0];
 				const      sapiObj = searchResponse.sapiObj;
 
-				if (! sapiObj.results ) {
+				if (! sapiObj ) {
+					debug('getAllEntityFacets: no sapiObj');
+				} else if (! sapiObj.results ) {
 					debug('getAllEntityFacets: no results');
 				} else if( ! sapiObj.results[0] ) {
 					debug('getAllEntityFacets: no results[0]');
@@ -583,7 +587,9 @@ function createPromisesToPopulateChainDetails( chainDetails, spreadMillis = 100)
 
 function extractArticleDetailsFromSapiObj( sapiObj ){
 	let articles = [];
-	if (! sapiObj.results ) {
+	if (! sapiObj ) {
+		debug('extractArticleDetailsFromSapiObj: no sapiObj');
+	} else if (! sapiObj.results ) {
 		debug('extractArticleDetailsFromSapiObj: sapiObj: no results');
 	} else if( ! sapiObj.results[0] ) {
 		debug('extractArticleDetailsFromSapiObj: sapiObj: no results[0]');
