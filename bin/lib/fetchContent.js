@@ -168,9 +168,11 @@ function recordFetchTiming( method, timing, resOk, status, statusText ){
 	});
 }
 
-function summariseFetchTimings(history=10){
+function summariseFetchTimings(history){
 	const summary = {};
 	Object.keys(FetchTimings).forEach( method => {
+		const totalCount = FetchTimings[method].length;
+		history = (history)? history : totalCount;
 		const recentFew = FetchTimings[method].slice(- history)
 		const count = recentFew.length;
 		let statusesNotOk = [];
