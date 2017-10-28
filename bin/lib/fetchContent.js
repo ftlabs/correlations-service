@@ -117,7 +117,7 @@ function article(uuid) {
 	debug(`uuid=${uuid}`);
 	const capiUrl = `${CAPI_PATH}${uuid}?apiKey=${CAPI_KEY}`;
 
-	return fetch(capiUrl)
+	return fetchWithTiming(capiUrl)
 	.then( res   => res.text() )
 	.then( text  => JSON.parse(text) )
 	;
@@ -155,37 +155,50 @@ function articleImageUrl(uuid){
 	});
 }
 
-const MAX_ATTEMPTS = 5;
+const FetchTimings = {};
 
-function makeFetchAttempts(address, options, attempt = 0){
-  if(attempt < MAX_ATTEMPTS){
-    return new Promise( (resolve, reject) => {
-      fetch(address, options)
-      .then(res => {
-        if(res && res.ok){
-          return res;
-        } else {
-					console.log(`ERROR: makeFetchAttempts: res not fab: attempt=${attempt}, options=${JSON.stringify(options)}`);
-          makeFetchAttempts(address, options, attempt + 1)
-            .then(result => resolve(result))
-          ;
-        }
-      })
-      .then(res => resolve(res) )
-			.catch( err => {
-				console.log(`ERROR: makeFetchAttempts: catch: attempt=${attempt}, options=${JSON.stringify(options)}`);
-				makeFetchAttempts(address, options, attempt + 1)
-					.then(result => resolve(result))
-				;
-			})
-    })
-  } else {
-      return Promise.reject(`makeFetchAttempts: Request failed too many times(${MAX_ATTEMPTS})`);
-  }
+function recordFetchTiming( method, millis ){
+	if (!FetchTimings.hasOwnProperty(method)) {
+		FetchTimings[method] = [];
+	}
+	FetchTimings[method].push(millis);
+}
+
+function summariseFetchTimings(history=10){
+	// loop over keys, construct map of avg and last few timings per keys
+	const summary = {};
+	Object.keys(FetchTimings).forEach( method => {
+		const recentFew = FetchTimings[method].slice(- history)
+		const count = recentFew.length;
+		const sum = recentFew.reduce((acc, curr) => {return acc + curr});
+		const mean = sum / count;
+		const max = recentFew.reduce((acc, curr) => {return Math.max(acc, curr);});
+		const min = recentFew.reduce((acc, curr) => {return Math.min(acc, curr);});
+		summary[method] = {
+			totalCount : FetchTimings[method].length,
+			count,
+			mean,
+			max,
+			min,
+		};
+	});
+
+	return summary;
+}
+
+function fetchWithTiming(url, options={}) {
+	const method = (options && options.method == 'POST')? 'POST' : 'GET';
+	const startMillis = Date.now();
+	return fetch(url, options)
+	.then( res => {
+		const endMillis = Date.now();
+		recordFetchTiming( method, endMillis - startMillis);
+		return res;
+	})
 }
 
 function fetchResText(url, options){
-	return fetch(url, options)
+	return fetchWithTiming(url, options)
 	.then(res => {
 		if(res && res.ok){
 			return res;
@@ -307,4 +320,5 @@ module.exports = {
 	searchByEntityWithFacets,
 	tmeIdToV2,
 	v2ApiCall,
+	summariseFetchTimings,
 };

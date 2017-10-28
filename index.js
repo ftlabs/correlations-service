@@ -126,6 +126,13 @@ app.get('/summary', (req, res) => {
 	res.json( correlate.summary() );
 });
 
+app.get('/summaryOfFetches', (req, res) => {
+	res.json( fetchContent.summariseFetchTimings() );
+});
+app.get('/summaryOfFetches/:history', (req, res) => {
+	res.json( fetchContent.summariseFetchTimings(req.params.history) );
+});
+
 app.get('/allIslands', (req, res) => {
 	res.json( correlate.allIslands() );
 });
@@ -267,7 +274,7 @@ function startup() {
 function postStartup() {
   const postStartupRangeSecs = (process.env.hasOwnProperty('POST_STARTUP_RANGE_SECS'))? parseInt(process.env.POST_STARTUP_RANGE_SECS) : 0;
   console.log(`postStartup: postStartupRangeSecs=${postStartupRangeSecs}`);
-  correlate.fetchUpdateCorrelationsEarlier(postStartupRangeSecs)
+  return correlate.fetchUpdateCorrelationsEarlier(postStartupRangeSecs)
   .catch( err => {
     throw new Error( `postStartup: err=${err}`);
   })
