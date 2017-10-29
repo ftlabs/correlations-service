@@ -597,40 +597,31 @@ function extractArticleDetailsFromSapiObj( sapiObj ){
 	return articles;
 }
 
-function createPromisesToLookupCapiForChainDetails( chainDetails, spreadMillis = 100 ){
-	// create a promise for each article in each link,
+function createPromisersToLookupCapiForChainDetails( chainDetails ){
+	// create a promise-returning fn for each article in each link,
 	// to look up the image details from CAPI v2,
 	// inserting the new field into the article obj: mainImageUrl, which might be null
 
-	// count the total num of articles first so we can spread the calls out
-	let numArticles = 1; // ensure no divide by 0
-	chainDetails['articlesPerLink'].forEach(articles => { numArticles = numArticles + articles.length; });
-
 	// loop over each link, then over each article in the link
-	let promises = [];
-	let index = -1;
+	let promisers = [];
 	chainDetails['articlesPerLink'].forEach(articles => {
-		index ++;
-		const delay = (index / numArticles) * spreadMillis;
 		articles.forEach( article => {
-			const promise = new Promise( (resolve) => setTimeout(() => resolve(
-					fetchContent.articleImageUrl(article.id)
+			const promiser = function() {
+					return fetchContent.articleImageUrl(article.id)
 					.then( url => {
 						article.mainImageUrl = url;
 					})
 					.catch( err => {
-						console.log( `createPromisesToLookupCapiForChainDetails: promise for article.id=${article.id}, err=${err}`);
+						console.log( `createPromisersToLookupCapiForChainDetails: promise for article.id=${article.id}, err=${err}`);
 						return;
 					})
-				), delay)
-			);
-			promises.push( promise );
+				};
+			promisers.push( promiser );
 		});
 	});
 
-	return promises;
+	return promisers;
 }
-
 
 function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 	const chainDetails = calcChainBetween(entity1, entity2);
@@ -646,12 +637,8 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 	.then( sapiObjs => {
 		chainDetails['articlesPerLink'] = sapiObjs.map(extractArticleDetailsFromSapiObj);
 	})
-	.then( () => {
-		return createPromisesToLookupCapiForChainDetails(chainDetails);
-	})
-	.then( promisesForImages => {
-		return Promise.all( promisesForImages );
-	})
+	.then( () => createPromisersToLookupCapiForChainDetails(chainDetails) )
+	.then( promisersForImages => directly( FACETS_CONCURRENCE, promisersForImages ) )
 	.then( () => chainDetails )
 	;
 }
