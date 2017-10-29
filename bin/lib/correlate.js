@@ -6,6 +6,7 @@ const directly     = require('./directly'); 	// trying Rhys' https://github.com/
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
+const CAPI_CONCURRENCE = (process.env.hasOwnProperty('CAPI_CONCURRENCE'))? process.env.CAPI_CONCURRENCE : 4;
 
 const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
@@ -638,7 +639,7 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 		chainDetails['articlesPerLink'] = sapiObjs.map(extractArticleDetailsFromSapiObj);
 	})
 	.then( () => createPromisersToLookupCapiForChainDetails(chainDetails) )
-	.then( promisersForImages => directly( FACETS_CONCURRENCE, promisersForImages ) )
+	.then( promisersForImages => directly( CAPI_CONCURRENCE, promisersForImages ) )
 	.then( () => chainDetails )
 	;
 }
