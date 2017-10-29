@@ -76,19 +76,6 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
 	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
-	// const initialMillis = 100;
-	// const spreadMillis = 5000; // spread out these fetches to try and avoid a node problem
-	// const promises = entitiesList.map((entity,index) => {
-	// 	const delay = (index / entitiesList.length) * spreadMillis;
-	// 	return new Promise( (resolve) => setTimeout(() => resolve(
-	// 			fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
-	// 			.catch( err => {
-	// 				console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
-	// 				return;
-	// 			})
-	// 		), initialMillis + delay)
-	// 	)
-	// });
 
 	const entityPromisers = entitiesList.map( entity => {
 		return function () {
@@ -561,28 +548,26 @@ function calcChainBetween(entity1, entity2) {
 	}
 }
 
-function createPromisesToPopulateChainDetails( chainDetails, spreadMillis = 100){
-	// create a promise for each link in the chain,
+function createPromisersToPopulateChainDetails( chainDetails ){
+	// create a promise-returning fn (a promiser) for each link in the chain,
 	// to search for article titles where both entities in the link co-occur.
-	// The promises are spread out in time to avoid breaking node.
 
-	let promises = [];
+	let promisers = [];
 	chainDetails.chain.forEach((entity,index) => {
 		if (index == 0) { return; }
 		const prevEntity = chainDetails.chain[index - 1];
-		const delay = (index / chainDetails.chain.length) * spreadMillis;
-		const promise = new Promise( (resolve) => setTimeout(() => resolve(
-				fetchContent.searchUnixTimeRange(earliestAfterSecs, latestBeforeSecs, { constraints : [prevEntity, entity], maxResults : 100,})
+		const promiser = function() {
+			return fetchContent.searchUnixTimeRange(earliestAfterSecs, latestBeforeSecs, { constraints : [prevEntity, entity], maxResults : 100,})
 				.catch( err => {
-					console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+					console.log( `ERROR: createPromisersToPopulateChainDetails: promise for entity=${entity}, err=${err}`);
 					return;
 				})
-			), delay)
-		);
-		promises.push( promise );
+				;
+		};
+		promisers.push( promiser );
 	});
 
-	return promises;
+	return promisers;
 }
 
 function extractArticleDetailsFromSapiObj( sapiObj ){
@@ -652,11 +637,11 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 
 	chainDetails['articlesPerLink'] = [];
 
-	const promisesToPopulateChainDetails = createPromisesToPopulateChainDetails(chainDetails);
+	const promisersToPopulateChainDetails = createPromisersToPopulateChainDetails(chainDetails);
 
 	// process each search result to get the list of titles for each link
 
-	return Promise.all(promisesToPopulateChainDetails)
+	return directly(FACETS_CONCURRENCE, promisersToPopulateChainDetails)
 	.then( searchResponses => searchResponses.map(sr => {return sr.sapiObj}) )
 	.then( sapiObjs => {
 		chainDetails['articlesPerLink'] = sapiObjs.map(extractArticleDetailsFromSapiObj);
