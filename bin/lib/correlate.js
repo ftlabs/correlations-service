@@ -2,7 +2,9 @@ const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
 const cache        = require('./cache');
 const v1v2         = require('./v1v2'); // obtain all the CAPI v1 and v2 variants of an entity
-const directly     = require('./directly'); 	// trying Rhys' https://github.com/wheresrhys/directly
+const directly     = require('./directly'); 	// trying Rhys' https://github.com/wheresrhys/directly.
+						// You pass 'directly' a list of fns, each of which generates a promise. 
+						// The fn calls are throttled.  
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
