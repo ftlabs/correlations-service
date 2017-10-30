@@ -1,4 +1,5 @@
 'use strict';
+// copied from Rhys' https://github.com/wheresrhys/directly, with a small fix in the run() fn.
 
 function getRemover (arr, target) {
 	return () => {
