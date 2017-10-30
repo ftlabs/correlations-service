@@ -1,11 +1,14 @@
-// This module makes use of 'node-fetch' to acces SAPI
-
 const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
 const cache        = require('./cache');
-const v1v2         = require('./v1v2');
+const v1v2         = require('./v1v2'); // obtain all the CAPI v1 and v2 variants of an entity
+const directly     = require('./directly'); 	// trying Rhys' https://github.com/wheresrhys/directly.
+						// You pass 'directly' a list of fns, each of which generates a promise. 
+						// The fn calls are throttled.  
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
+const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
+const CAPI_CONCURRENCE = (process.env.hasOwnProperty('CAPI_CONCURRENCE'))? process.env.CAPI_CONCURRENCE : 4;
 
 const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
@@ -45,7 +48,9 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 		.then( sapiObj => {
 			const deltaEntities = {};
 			let numResults;
-			if (! sapiObj.results ) {
+			if( ! sapiObj ) {
+				debug('getLatestEntitiesMentioned: no sapiObj');
+			} else if (! sapiObj.results ) {
 				debug('getLatestEntitiesMentioned: no results');
 			} else if( ! sapiObj.results[0] ) {
 				debug('getLatestEntitiesMentioned: no results[0]');
@@ -73,29 +78,29 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
-	debug(`getAllEntityFacets: num entities=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
-	const initialMillis = 100;
-	const spreadMillis = 5000; // spread out these fetches to try and avoid a node problem
-	const promises = entitiesList.map((entity,index) => {
-		const delay = (index / entitiesList.length) * spreadMillis;
-		return new Promise( (resolve) => setTimeout(() => resolve(
-				fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
-				.catch( err => {
-					console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
-					return;
-				})
-			), initialMillis + delay)
-		)
+	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
+
+	const entityPromisers = entitiesList.map( entity => {
+		return function () {
+			return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
+					.catch( err => {
+						console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+						return;
+					})
+					;
+		};
 	});
 
-	return Promise.all(promises)
+	return directly(FACETS_CONCURRENCE, entityPromisers)
 		.then( searchResponses => {
 			const entityFacets = {};
 			for( let searchResponse of searchResponses ){
 				const targetEntity = searchResponse.params.constraints[0];
 				const      sapiObj = searchResponse.sapiObj;
 
-				if (! sapiObj.results ) {
+				if (! sapiObj ) {
+					debug('getAllEntityFacets: no sapiObj');
+				} else if (! sapiObj.results ) {
 					debug('getAllEntityFacets: no results');
 				} else if( ! sapiObj.results[0] ) {
 					debug('getAllEntityFacets: no results[0]');
@@ -323,6 +328,7 @@ function fetchNewlyAppearedEntities(){
 
 // tie together the fetching of new data, and the post-processing of it
 function fetchUpdateCorrelations(afterSecs, beforeSecs) {
+	console.log(`fetchUpdateCorrelations: afterSecs=${afterSecs}, beforeSecs=${beforeSecs}`);
 	const startInitialSearchMillis = Date.now();
 	let startFacetSearchesMillis;
 	let endFacetSearchesMillis;
@@ -338,6 +344,8 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
+			console.log(`fetchUpdateCorrelations: num deltaEntities=${Object.keys(deltaEntities).length}, deltaEntities=${JSON.stringify(deltaEntities, null, 2)}`);
+
 			startFacetSearchesMillis = Date.now();
 			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities)
 			.then( entitiesAndFacetsSnapshot => {
@@ -361,9 +369,9 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
 			if (symmetryProblems.length > 0) {
-				console.log(`ERROR: symmetryProblems: ${JSON.stringify(symmetryProblems, null, 2)}`);
+				console.log(`ERROR: fetchUpdateCorrelations: symmetryProblems: ${JSON.stringify(symmetryProblems, null, 2)}`);
 			} else {
-			 	console.log(`DEBUG: no symmetryProblems found`);
+			 	debug(`fetchUpdateCorrelations: no symmetryProblems found`);
 		 	}
 			updateUpdateTimes(afterSecs, beforeSecs); // only update times after sucessfully doing the update
 			endUpdatesMillis = Date.now();
@@ -391,7 +399,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
 			const summaryData = getSummaryData();
-			summaryData['delta'] = {
+			const delta = {
 				times : {
 					afterSecs,
 					afterSecsDate       : new Date(afterSecs * 1000).toISOString(),
@@ -418,6 +426,9 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 					postProcessingMillis : (endPostProcessingMillis  - startPostProcessingMillis),
 				}
 			};
+
+			summaryData['delta'] = delta;
+			console.log(`fetchUpdateCorrelations: delta=${JSON.stringify(delta, null, 2)}`);
 
 			cache.clearAll();
 			return summaryData;
@@ -540,33 +551,33 @@ function calcChainBetween(entity1, entity2) {
 	}
 }
 
-function createPromisesToPopulateChainDetails( chainDetails, spreadMillis = 100){
-	// create a promise for each link in the chain,
+function createPromisersToPopulateChainDetails( chainDetails ){
+	// create a promise-returning fn (a promiser) for each link in the chain,
 	// to search for article titles where both entities in the link co-occur.
-	// The promises are spread out in time to avoid breaking node.
 
-	let promises = [];
+	let promisers = [];
 	chainDetails.chain.forEach((entity,index) => {
 		if (index == 0) { return; }
 		const prevEntity = chainDetails.chain[index - 1];
-		const delay = (index / chainDetails.chain.length) * spreadMillis;
-		const promise = new Promise( (resolve) => setTimeout(() => resolve(
-				fetchContent.searchUnixTimeRange(earliestAfterSecs, latestBeforeSecs, { constraints : [prevEntity, entity], maxResults : 100,})
+		const promiser = function() {
+			return fetchContent.searchUnixTimeRange(earliestAfterSecs, latestBeforeSecs, { constraints : [prevEntity, entity], maxResults : 100,})
 				.catch( err => {
-					console.log( `getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+					console.log( `ERROR: createPromisersToPopulateChainDetails: promise for entity=${entity}, err=${err}`);
 					return;
 				})
-			), delay)
-		);
-		promises.push( promise );
+				;
+		};
+		promisers.push( promiser );
 	});
 
-	return promises;
+	return promisers;
 }
 
 function extractArticleDetailsFromSapiObj( sapiObj ){
 	let articles = [];
-	if (! sapiObj.results ) {
+	if (! sapiObj ) {
+		debug('extractArticleDetailsFromSapiObj: no sapiObj');
+	} else if (! sapiObj.results ) {
 		debug('extractArticleDetailsFromSapiObj: sapiObj: no results');
 	} else if( ! sapiObj.results[0] ) {
 		debug('extractArticleDetailsFromSapiObj: sapiObj: no results[0]');
@@ -589,61 +600,48 @@ function extractArticleDetailsFromSapiObj( sapiObj ){
 	return articles;
 }
 
-function createPromisesToLookupCapiForChainDetails( chainDetails, spreadMillis = 100 ){
-	// create a promise for each article in each link,
+function createPromisersToLookupCapiForChainDetails( chainDetails ){
+	// create a promise-returning fn for each article in each link,
 	// to look up the image details from CAPI v2,
 	// inserting the new field into the article obj: mainImageUrl, which might be null
 
-	// count the total num of articles first so we can spread the calls out
-	let numArticles = 1; // ensure no divide by 0
-	chainDetails['articlesPerLink'].forEach(articles => { numArticles = numArticles + articles.length; });
-
 	// loop over each link, then over each article in the link
-	let promises = [];
-	let index = -1;
+	let promisers = [];
 	chainDetails['articlesPerLink'].forEach(articles => {
-		index ++;
-		const delay = (index / numArticles) * spreadMillis;
 		articles.forEach( article => {
-			const promise = new Promise( (resolve) => setTimeout(() => resolve(
-					fetchContent.articleImageUrl(article.id)
+			const promiser = function() {
+					return fetchContent.articleImageUrl(article.id)
 					.then( url => {
 						article.mainImageUrl = url;
 					})
 					.catch( err => {
-						console.log( `createPromisesToLookupCapiForChainDetails: promise for article.id=${article.id}, err=${err}`);
+						console.log( `createPromisersToLookupCapiForChainDetails: promise for article.id=${article.id}, err=${err}`);
 						return;
 					})
-				), delay)
-			);
-			promises.push( promise );
+				};
+			promisers.push( promiser );
 		});
 	});
 
-	return promises;
+	return promisers;
 }
-
 
 function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 	const chainDetails = calcChainBetween(entity1, entity2);
 
 	chainDetails['articlesPerLink'] = [];
 
-	const promisesToPopulateChainDetails = createPromisesToPopulateChainDetails(chainDetails);
+	const promisersToPopulateChainDetails = createPromisersToPopulateChainDetails(chainDetails);
 
 	// process each search result to get the list of titles for each link
 
-	return Promise.all(promisesToPopulateChainDetails)
+	return directly(FACETS_CONCURRENCE, promisersToPopulateChainDetails)
 	.then( searchResponses => searchResponses.map(sr => {return sr.sapiObj}) )
 	.then( sapiObjs => {
 		chainDetails['articlesPerLink'] = sapiObjs.map(extractArticleDetailsFromSapiObj);
 	})
-	.then( () => {
-		return createPromisesToLookupCapiForChainDetails(chainDetails);
-	})
-	.then( promisesForImages => {
-		return Promise.all( promisesForImages );
-	})
+	.then( () => createPromisersToLookupCapiForChainDetails(chainDetails) )
+	.then( promisersForImages => directly( CAPI_CONCURRENCE, promisersForImages ) )
 	.then( () => chainDetails )
 	;
 }

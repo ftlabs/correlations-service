@@ -117,8 +117,7 @@ function article(uuid) {
 	debug(`uuid=${uuid}`);
 	const capiUrl = `${CAPI_PATH}${uuid}?apiKey=${CAPI_KEY}`;
 
-	return fetch(capiUrl)
-	.then( res   => res.text() )
+	return fetchResText(capiUrl)
 	.then( text  => JSON.parse(text) )
 	;
 }
@@ -155,33 +154,86 @@ function articleImageUrl(uuid){
 	});
 }
 
-const MAX_ATTEMPTS = 5;
+const FetchTimings = {};
 
-function makeFetchAttempts(address, options, attempt = 0){
-  if(attempt < MAX_ATTEMPTS){
-    return new Promise( (resolve, reject) => {
-      fetch(address, options)
-      .then(res => {
-        if(res && res.ok){
-          return res;
-        } else {
-					console.log(`ERROR: makeFetchAttempts: res not fab: attempt=${attempt}, options=${JSON.stringify(options)}`);
-          makeFetchAttempts(address, options, attempt + 1)
-            .then(result => resolve(result))
-          ;
-        }
-      })
-      .then(res => resolve(res) )
-			.catch( err => {
-				console.log(`ERROR: makeFetchAttempts: catch: attempt=${attempt}, options=${JSON.stringify(options)}`);
-				makeFetchAttempts(address, options, attempt + 1)
-					.then(result => resolve(result))
-				;
-			})
-    })
-  } else {
-      return Promise.reject(`makeFetchAttempts: Request failed too many times(${MAX_ATTEMPTS})`);
-  }
+function recordFetchTiming( method, timing, resOk, status, statusText ){
+	if (!FetchTimings.hasOwnProperty(method)) {
+		FetchTimings[method] = [];
+	}
+	FetchTimings[method].push({
+		timing,
+		resOk,
+		status,
+		statusText
+	});
+}
+
+function summariseFetchTimings(history){
+	const summary = {};
+	Object.keys(FetchTimings).forEach( method => {
+		const totalCount = FetchTimings[method].length;
+		history = (history)? history : totalCount;
+		const recentFew = FetchTimings[method].slice(- history)
+		const count = recentFew.length;
+		let statusesNotOk = [];
+		let numOk = 0;
+		let numNotOk = 0;
+		let sum = 0;
+		let max = 0;
+		let min = -1;
+		recentFew.forEach( item => {
+			if (item.resOk) {
+				numOk = numOk + 1;
+			} else {
+				numNotOk = numNotOk + 1;
+				statusesNotOk.push({ status: item.status, statusText: item.statusText});
+			}
+
+			sum = sum + item.timing
+			max = Math.max(max, item.timing);
+			min = (min == -1)? item.timing : Math.min(min, item.timing);
+		});
+		summary[method] = {
+			totalCount : FetchTimings[method].length,
+			count,
+			mean : sum / count,
+			max,
+			min,
+			numOk,
+			numNotOk,
+			statusesNotOk,
+		};
+	});
+
+	return summary;
+}
+
+function fetchWithTiming(url, options={}) {
+	const startMillis = Date.now();
+	return fetch(url, options)
+	.then( res => {
+		const endMillis = Date.now();
+		const timing = endMillis - startMillis;
+		return { res, timing };
+	})
+}
+
+function fetchResText(url, options){
+	return fetchWithTiming(url, options)
+	.then(resWithTiming => {
+		const method = (options && options.method == 'POST')? 'POST' : 'GET';
+		const res = resWithTiming.res;
+		const resOk = (res && res.ok);
+		const timing = resWithTiming.timing;
+		recordFetchTiming( method, timing, resOk, res.status, res.statusText);
+		if(resOk){
+			return res;
+		} else {
+			throw new Error(`fetchResText: res not ok: res.status=${res['status']}, res.statusText=${res['statusText']}, url=${url}, options=${JSON.stringify(options)}`);
+		}
+	})
+	.then( res  => res.text() )
+	;
 }
 
 function search(params) {
@@ -196,15 +248,14 @@ function search(params) {
 	};
 	debug(`search: sapiQuery=${JSON.stringify(sapiQuery)}`);
 
-	return makeFetchAttempts(sapiUrl, options)
-	.then( res  => res.text() )
+	return fetchResText(sapiUrl, options)
 	.then( text => {
 		let sapiObj;
 		try {
 		 	sapiObj = JSON.parse(text);
 		}
-		catch( e ){
-			console.log(`ERROR: search: e=${e},
+		catch( err ){
+			throw new Error(`JSON.parse: err=${err},
 				text=${text},
 				params=${params}`);
 		}
@@ -215,6 +266,7 @@ function search(params) {
 	} )
 	.catch( err => {
 		console.log(`ERROR: search: err=${err}.`);
+		return { params }; // NB, no sapiObj...
 	})
 	;
 }
@@ -259,8 +311,7 @@ function searchByEntityWithFacets( entity ){
 function tmeIdToV2( tmeId ){
 	const url = tmeIdToV2Url( tmeId );
 	debug(`tmeIdToV2: tmeId=${tmeId}, url=${url}`);
-	return fetch(url)
-	.then( res   => res.text() )
+	return fetchResText(url)
 	.then( text => {
 		debug(`tmeIdToV2: text=${text}`);
 		return text;
@@ -275,8 +326,7 @@ function tmeIdToV2( tmeId ){
 function v2ApiCall( apiUrl ){
 	const url = `${apiUrl}?apiKey=${CAPI_KEY}`;
 	debug(`v2ApiCall: url=${url}`);
-	return fetch(url)
-	.then( res   => res.text() )
+	return fetchResText(url)
 	.then( text => {
 		debug(`v2ApiCall: text=${text}`);
 		return text;
@@ -296,4 +346,5 @@ module.exports = {
 	searchByEntityWithFacets,
 	tmeIdToV2,
 	v2ApiCall,
+	summariseFetchTimings,
 };

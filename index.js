@@ -126,6 +126,13 @@ app.get('/summary', (req, res) => {
 	res.json( correlate.summary() );
 });
 
+app.get('/summaryOfFetches', (req, res) => {
+	res.json( fetchContent.summariseFetchTimings() );
+});
+app.get('/summaryOfFetches/:history', (req, res) => {
+	res.json( fetchContent.summariseFetchTimings(req.params.history) );
+});
+
 app.get('/allIslands', (req, res) => {
 	res.json( correlate.allIslands() );
 });
@@ -243,23 +250,36 @@ function startListening(){
 	});
 }
 
-let startupRangeSecs = (process.env.STARTUP_RANGE_SECS !== undefined)? parseInt(process.env.STARTUP_RANGE_SECS) : 0;
-if (startupRangeSecs > 0) {
-  console.log(`startup: startupRangeSecs=${startupRangeSecs}`);
-	correlate.fetchUpdateCorrelationsEarlier(startupRangeSecs)
-	.then( summaryData => {
-		console.log(`startup: fetchUpdateCorrelationsEarlier: summaryData: ${JSON.stringify(summaryData, null, 2)}`);
-		startListening();
-	})
-	.catch( err => {
-		console.log( `startup: err=${err}`);
-		startListening();
-	})
-} else {
-	startListening();
+function startup() {
+  return Promise.resolve(1)
+  .then( () => {
+    const startupRangeSecs = (process.env.hasOwnProperty('STARTUP_RANGE_SECS'))? parseInt(process.env.STARTUP_RANGE_SECS) : 0;
+    if (startupRangeSecs > 0) {
+      console.log(`startup: startupRangeSecs=${startupRangeSecs}`);
+    	return correlate.fetchUpdateCorrelationsEarlier(startupRangeSecs);
+    } else {
+      return { msg: 'startup: no data pre-loaded' };
+    }
+  })
+  .catch( err => {
+    throw new Error( `startup: err=${err}`);
+  })
+  .then( info => {
+    startListening();
+    return;
+  })
+  ;
 }
 
-//---
+function postStartup() {
+  const postStartupRangeSecs = (process.env.hasOwnProperty('POST_STARTUP_RANGE_SECS'))? parseInt(process.env.POST_STARTUP_RANGE_SECS) : 0;
+  console.log(`postStartup: postStartupRangeSecs=${postStartupRangeSecs}`);
+  return correlate.fetchUpdateCorrelationsEarlier(postStartupRangeSecs)
+  .catch( err => {
+    throw new Error( `postStartup: err=${err}`);
+  })
+  ;
+}
 
 function updateEverySoOften(count=0){
   let updateEverySecs = process.env.UPDATE_EVERY_SECS;
@@ -276,4 +296,13 @@ function updateEverySoOften(count=0){
   }
 }
 
-updateEverySoOften();
+//---
+
+startup()
+.then(() => postStartup()        )
+.then(() => updateEverySoOften() )
+.then(() => console.log('full startup completed.') )
+.catch( err => {
+  console.log(`ERROR: on startup: err=${err}`);
+})
+;
