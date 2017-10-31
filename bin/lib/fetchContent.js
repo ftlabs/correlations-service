@@ -303,7 +303,7 @@ function searchUnixTimeRange(afterSecs, beforeSecs, params={} ) {
 function searchByEntityWithFacets( entity ){
 	const pieces = entity.split(':');
 	return search({
-		queryString: entity,
+		queryString: rephraseEntityForQueryString(entity),
 		ontology: pieces[0],
 	});
 }
