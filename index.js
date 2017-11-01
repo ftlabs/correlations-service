@@ -26,10 +26,6 @@ app.use(requestLogger);
 
 app.use('/static', express.static('static'));
 
-app.get('/__gtg', (req, res) => {
-	res.status(200).end();
-});
-
 const TOKEN = process.env.TOKEN;
 if (! TOKEN ) {
   throw new Error('ERROR: TOKEN not specified in env');
@@ -38,6 +34,46 @@ if (! TOKEN ) {
 app.get('/dummy', (req, res) => {
   res.json({ testing: "testing", 'one-two-three' : 'testing' });
 });
+
+function healthCheck1() {
+  const summary          = correlate.summary()
+  const summaryOfFetches = fetchContent.summariseFetchTimings();
+
+  return {
+    id               : 1,
+    name             : 'check largest island exists and contains more than 1 person',
+    ok               : ( summary.hasOwnProperty('counts')
+                      && summary.counts.hasOwnProperty('largestIslandSize')
+                      && summary.counts.largestIslandSize > 1 ),
+    severity         : 1,
+    businessImpact   : 'the FT Labs Google Home game, Make Connections, will be failing',
+    technicalSummary : 'Checks if the islands data structure has been properly populated with groups of correlated people',
+    panicGuide       : 'check the logs and /summaryOfFetches',
+    checkOutput      : { summaryOfFetches },
+    lastUpdated      : (summary && summary.times)? summary.times.intervalCoveredHrs : 'unknown',
+  };
+}
+
+app.get('/__health', (req, res) => {
+  const stdResponse = {
+    schemaVersion : 1,
+    systemCode    : 'ftlabs-correlations-people',
+    name          : 'FT Labs Correlations People',
+    description   : 'uses SAPI+CAPI to build graph of correlations of people mentioned in article metadata',
+    checks        : [],
+  };
+
+  stdResponse.checks.push( healthCheck1() );
+
+	res.json( stdResponse );
+});
+
+app.get('/__gtg', (req, res) => {
+  const check = healthCheck1();
+  const status = (check.ok)? 200 : 503;
+	res.status(status).end();
+});
+
 
 // these route *do* use s3o
 app.set('json spaces', 2);
