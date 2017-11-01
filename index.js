@@ -26,10 +26,6 @@ app.use(requestLogger);
 
 app.use('/static', express.static('static'));
 
-app.get('/__gtg', (req, res) => {
-	res.status(200).end();
-});
-
 const TOKEN = process.env.TOKEN;
 if (! TOKEN ) {
   throw new Error('ERROR: TOKEN not specified in env');
@@ -38,6 +34,48 @@ if (! TOKEN ) {
 app.get('/dummy', (req, res) => {
   res.json({ testing: "testing", 'one-two-three' : 'testing' });
 });
+
+function healthCheck1() {
+  const summary          = correlate.summary()
+  const summaryOfFetches = fetchContent.summariseFetchTimings();
+  const ontology = correlate.ontology();
+
+  return {
+    id               : 1,
+    name             : `check largest island exists and contains more than 1 ${ontology}`,
+    ok               : ( summary.hasOwnProperty('counts')
+                      && summary.counts.hasOwnProperty('largestIslandSize')
+                      && summary.counts.largestIslandSize > 1 ),
+    severity         : 1,
+    businessImpact   : 'the FT Labs Google Home game, Make Connections, will be failing',
+    technicalSummary : `Checks if the islands data structure has been properly populated with groups of correlated ${ontology}`,
+    panicGuide       : 'check the logs and /summaryOfFetches',
+    checkOutput      : { summaryOfFetches },
+    lastUpdated      : (summary && summary.times)? summary.times.intervalCoveredHrs : 'unknown',
+  };
+}
+
+app.get('/__health', (req, res) => {
+  const ontology = correlate.ontology();
+  const stdResponse = {
+    schemaVersion : 1,
+    systemCode    : `ftlabs-correlations-${ontology}`,
+    name          : `FT Labs Correlations ${ontology}`,
+    description   : `uses SAPI+CAPI to build graph of correlations of ${ontology} mentioned in article metadata`,
+    checks        : [],
+  };
+
+  stdResponse.checks.push( healthCheck1() );
+
+	res.json( stdResponse );
+});
+
+app.get('/__gtg', (req, res) => {
+  const check = healthCheck1();
+  const status = (check.ok)? 200 : 503;
+	res.status(status).end();
+});
+
 
 // these route *do* use s3o
 app.set('json spaces', 2);
@@ -52,12 +90,10 @@ app.get('/', (req, res) => {
   let island = (islands.length > 0)? islands[0] : [ {'entity1': true, 'entity2' : true}];
   const entities = Object.keys(island);
   res.render('home', {
-    ontology : correlate.ontology,
+    ontology : correlate.ontology(),
     entity1 : entities[0],
     entity2 : entities[entities.length -1],
     entity1a : entities[1],
-    tmeId1 : (correlate.ontology == 'people')? 'TnN0ZWluX1BOX1BvbGl0aWNpYW5fMjcx-UE4=' : 'NDdiMzAyNzctMTRlMy00Zjk1LWEyZjYtYmYwZWIwYWU2NzAy-VG9waWNz',
-    v2ApuUrl1 : 'http://api.ft.com/things/f79cb3d0-3c68-3776-b6ac-43a44609a7d6',
   });
 });
 
