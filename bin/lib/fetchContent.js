@@ -86,6 +86,8 @@ function constructSAPIQuery( params ) {
 		.join(' and ');
 	}
 
+	queryString = queryString + ' and brand:-\"FirstFT\"'; // override to ensure we don't get firstFT articles (which are ARTICLES not BLOGS)
+
 	// for whichever ontology we pick,
 	// make sure we have the with and without Id variations for the facets.
 	const facets = [combined.ontology];
