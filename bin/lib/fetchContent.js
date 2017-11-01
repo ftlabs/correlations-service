@@ -98,7 +98,7 @@ function constructSAPIQuery( params ) {
 	const full = {
   	"queryString": queryString,
   	"queryContext" : {
-         "curations" : [ "ARTICLES", "BLOGS" ]
+         "curations" : [ "ARTICLES" ] // dropping "BLOGS" to ensure more useful correlations
 		},
   	"resultContext" : {
 			"maxResults" : `${combined.maxResults}`,
