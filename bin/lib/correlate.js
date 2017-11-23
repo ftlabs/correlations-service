@@ -8,7 +8,11 @@ const directly     = require('./directly'); 	// trying Rhys' https://github.com/
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
-const CAPI_CONCURRENCE = (process.env.hasOwnProperty('CAPI_CONCURRENCE'))? process.env.CAPI_CONCURRENCE : 4;
+const CAPI_CONCURRENCE   = (process.env.hasOwnProperty('CAPI_CONCURRENCE'  ))? process.env.CAPI_CONCURRENCE   : 4;
+
+const DEFAULT_DELAY_MILLIS = 100;
+const FACETS_DELAY_MILLIS = (process.env.hasOwnProperty('FACETS_DELAY_MILLIS'))? process.env.FACETS_DELAY_MILLIS : DEFAULT_DELAY_MILLIS;
+const CAPI_DELAY_MILLIS   = (process.env.hasOwnProperty('CAPI_DELAY_MILLIS'  ))? process.env.CAPI_DELAY_MILLIS   : DEFAULT_DELAY_MILLIS;
 
 const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
@@ -40,6 +44,23 @@ function logItem( location, obj ){
         date : new Date(now).toISOString(),
 		location : location,
 		    data : obj } );
+}
+
+// prefix each promiser with a new Promise which starts with a timeout
+function delayPromisers(promisers, delayMillis=DEFAULT_DELAY_MILLIS){
+	return promisers.map(p => {
+		return function() {
+			return new Promise((resolve) => {
+				setTimeout( () => { resolve( p() ); }, delayMillis);
+			})
+			;
+		};
+	});
+}
+
+function delayedDirectly( concurrence, promisers, delayMillis=DEFAULT_DELAY_MILLIS){
+	const delayedPromisers = delayPromisers( promisers, delayMillis);
+	return directly(concurrence,  delayedPromisers);
 }
 
 function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
@@ -1036,7 +1057,7 @@ function exhaustivelyPainfulDataConsistencyCheck(){
 	// funnel the promisers through 'directly'
 	// report results
 
-	return directly(FACETS_CONCURRENCE, promisers)
+	return delayedDirectly(FACETS_CONCURRENCE, promisers, FACETS_DELAY_MILLIS)
 	.then( listsOfWarnings => {
 		return {
 			description      : 'exhaustivelyPainfulDataConsistencyCheck: invoking fetchCalcChainWithArticlesBetween on each pair of entities on each island, looking for responses which are have no articles in one or more links of the chain. Warning: this hammers the back end(s), so should not be done lightly. If the response takes too long and times out in the browser, it is worth checking the logs since the response is logged in full when the back end call finally completes.',
@@ -1053,13 +1074,6 @@ function exhaustivelyPainfulDataConsistencyCheck(){
 		};
 	})
 	;
-
-	// return Promise.resolve({
-	// 	numIslands       : allIslands.length,
-	// 	islandSizes      : islandSizes,
-	// 	totalIslandsSize : islandSizes.reduce( (prev, curr) => prev + curr ),
-	// 	totalPairs       : pairs.length,
-	// });
 }
 
 module.exports = {
