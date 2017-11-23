@@ -129,10 +129,8 @@ function article(uuid) {
 
 	const articleItem = readArticleCache( uuid );
 	if (articleItem !== undefined) {
-		console.log(`article: cache hit: uuid=${uuid}`);
+		debug(`article: cache hit: uuid=${uuid}`);
 		return Promise.resolve( articleItem );
-	} else {
-		console.log(`article: cache miss: uuid=${uuid}`);
 	}
 
 	return fetchResText(capiUrl)
@@ -144,17 +142,9 @@ function article(uuid) {
 	;
 }
 
-const CACHED_ARTICLE_IMAGE_URLS = {};
-
 function articleImageUrl(uuid){
 	// lookup the full article details,
 	// then just return the image details: mainImage.members[0].binaryUrl
-
-	if (CACHED_ARTICLE_IMAGE_URLS.hasOwnProperty( uuid )) {
-		const imageUrl = CACHED_ARTICLE_IMAGE_URLS[uuid];
-		debug(`articleImageUrl: uuid=${uuid}: cache hit: imageUrl=${imageUrl}`);
-		return Promise.resolve( imageUrl );
-	}
 
 	return article(uuid)
 	.then( json => {
@@ -171,7 +161,7 @@ function articleImageUrl(uuid){
 				debug(`articleImageUrl: uuid=${uuid}: cache miss: imageUrl=${imageUrl}`);
 				imageUrl = json.mainImage.members[0].binaryUrl;
 			}
-			CACHED_ARTICLE_IMAGE_URLS[uuid] = imageUrl
+
 			return imageUrl;
 	});
 }
@@ -282,7 +272,7 @@ function search(params) {
 
 	const cachedSearchItem = readSearchCache( options );
 	if (cachedSearchItem !== undefined) {
-		console.log(`search: cache hit: sapiQuery=${JSON.stringify(sapiQuery)}`);
+		debug(`search: cache hit: sapiQuery=${JSON.stringify(sapiQuery)}`);
 		return Promise.resolve(cachedSearchItem);
 	}
 
@@ -326,11 +316,16 @@ function unixTimeToIsoTime(unixTime){
 function searchUnixTimeRange(afterSecs, beforeSecs, params={} ) {
 	// into this form: 2017-05-29T10:00:00Z
 	const  afterIsotime = unixTimeToIsoTime( afterSecs);
-	const beforeIsotime = unixTimeToIsoTime(beforeSecs);
 	const timeConstraints = [
-		`lastPublishDateTime:>${afterIsotime}`,
-		`lastPublishDateTime:<${beforeIsotime}`
+		`lastPublishDateTime:>${afterIsotime}`
 	];
+	// Only include the 'before' constraint if it is later than the 'after' constraint.
+	// allowing -1 to be used to not limit the receny of the range, i.e. accept the very latest articles.
+	// The assumption is that afterSeacs is *always* set to a valid value.
+	if (beforeSecs > afterSecs) {
+		const beforeIsotime = unixTimeToIsoTime(beforeSecs);
+		timeConstraints.push(`lastPublishDateTime:<${beforeIsotime}`);
+	}
 
 	if (! params.hasOwnProperty('constraints')) {
 		params.constraints = [];

@@ -581,8 +581,8 @@ function createPromisersToPopulateChainDetails( chainDetails ){
 		if (index == 0) { return; }
 		const prevEntity = chainDetails.chain[index - 1];
 		const promiser = function() {
-			// console.log(`DEBUG: createPromisersToPopulateChainDetails: prevEntity=${prevEntity}, entity=${entity}`);
-			return fetchContent.searchUnixTimeRange(earliestAfterSecs, latestBeforeSecs, { constraints : [prevEntity, entity], maxResults : 100,})
+			// NB: by setting the 'before' param to -1, it allows the very latest articles to be considered
+			return fetchContent.searchUnixTimeRange(earliestAfterSecs, -1, { constraints : [prevEntity, entity], maxResults : 100,})
 				.catch( err => {
 					console.log( `ERROR: createPromisersToPopulateChainDetails: promise for entity=${entity}, err=${err}`);
 					return;
