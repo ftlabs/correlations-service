@@ -10,7 +10,7 @@ const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
 const CAPI_CONCURRENCE   = (process.env.hasOwnProperty('CAPI_CONCURRENCE'  ))? process.env.CAPI_CONCURRENCE   : 4;
 
-const DEFAULT_DELAY_MILLIS = 100;
+const DEFAULT_DELAY_MILLIS = 1;
 const FACETS_DELAY_MILLIS = (process.env.hasOwnProperty('FACETS_DELAY_MILLIS'))? process.env.FACETS_DELAY_MILLIS : DEFAULT_DELAY_MILLIS;
 const CAPI_DELAY_MILLIS   = (process.env.hasOwnProperty('CAPI_DELAY_MILLIS'  ))? process.env.CAPI_DELAY_MILLIS   : DEFAULT_DELAY_MILLIS;
 
@@ -112,7 +112,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 		};
 	});
 
-	return directly(FACETS_CONCURRENCE, entityPromisers)
+	return delayedDirectly(FACETS_CONCURRENCE, entityPromisers, FACETS_DELAY_MILLIS)
 		.then( searchResponses => {
 			const entityFacets = {};
 			for( let searchResponse of searchResponses ){
@@ -581,6 +581,7 @@ function createPromisersToPopulateChainDetails( chainDetails ){
 		if (index == 0) { return; }
 		const prevEntity = chainDetails.chain[index - 1];
 		const promiser = function() {
+			// console.log(`DEBUG: createPromisersToPopulateChainDetails: prevEntity=${prevEntity}, entity=${entity}`);
 			return fetchContent.searchUnixTimeRange(earliestAfterSecs, latestBeforeSecs, { constraints : [prevEntity, entity], maxResults : 100,})
 				.catch( err => {
 					console.log( `ERROR: createPromisersToPopulateChainDetails: promise for entity=${entity}, err=${err}`);
@@ -656,13 +657,13 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 
 	// process each search result to get the list of titles for each link
 
-	return directly(FACETS_CONCURRENCE, promisersToPopulateChainDetails)
+	return delayedDirectly(FACETS_CONCURRENCE, promisersToPopulateChainDetails, FACETS_DELAY_MILLIS)
 	.then( searchResponses => searchResponses.map(sr => {return sr.sapiObj}) )
 	.then( sapiObjs => {
 		chainDetails['articlesPerLink'] = sapiObjs.map(extractArticleDetailsFromSapiObj);
 	})
 	.then( () => createPromisersToLookupCapiForChainDetails(chainDetails) )
-	.then( promisersForImages => directly( CAPI_CONCURRENCE, promisersForImages ) )
+	.then( promisersForImages => delayedDirectly( CAPI_CONCURRENCE, promisersForImages, CAPI_DELAY_MILLIS ) )
 	.then( () => {
 		// warn if any link has no articles
 
@@ -999,6 +1000,7 @@ function calcCoocsForEntities( entities, max=10 ){
 }
 
 function exhaustivelyPainfulDataConsistencyCheck(){
+	console.log('WARNING: initiating exhaustivelyPainfulDataConsistencyCheck');
 	const startMillis = Date.now();
 
 	// loop over every island
@@ -1016,7 +1018,6 @@ function exhaustivelyPainfulDataConsistencyCheck(){
 			for (let e2 = e1 + 1; e2 < entities.length; e2++) {
 				let entity2 = entities[e2];
 				pairs.push([entity1, entity2]);
-				// console.log( `DEBUG: exhaustivelyPainfulDataConsistencyCheck: entity1 ${e1} = ${entity1}, entity2 ${e2} = ${entity2}`);
 			}
 		});
 	});
