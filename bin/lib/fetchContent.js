@@ -115,12 +115,32 @@ function constructSAPIQuery( params ) {
 	return full;
 }
 
+const ARTICLE_CACHE = {}; // use uuid as key
+function readArticleCache( key ){
+	return ARTICLE_CACHE[key];
+}
+function writeArticleCache( key, payload ){
+	ARTICLE_CACHE[key] = payload;
+}
+
 function article(uuid) {
 	debug(`uuid=${uuid}`);
 	const capiUrl = `${CAPI_PATH}${uuid}?apiKey=${CAPI_KEY}`;
 
+	const articleItem = readArticleCache( uuid );
+	if (articleItem !== undefined) {
+		console.log(`article: cache hit: uuid=${uuid}`);
+		return Promise.resolve( articleItem );
+	} else {
+		console.log(`article: cache miss: uuid=${uuid}`);
+	}
+
 	return fetchResText(capiUrl)
-	.then( text  => JSON.parse(text) )
+	.then( text  => {
+		const articleItem = JSON.parse(text);
+		writeArticleCache( uuid, articleItem);
+		return articleItem;
+	})
 	;
 }
 
@@ -238,6 +258,16 @@ function fetchResText(url, options){
 	;
 }
 
+const SEARCH_CACHE = {}; // use stringify of obj as key
+function readSearchCache( keyObj ){
+	const key = JSON.stringify(keyObj);
+	return SEARCH_CACHE[key];
+}
+function writeSearchCache( keyObj, payload ){
+	const key = JSON.stringify(keyObj);
+	SEARCH_CACHE[key] = payload;
+}
+
 function search(params) {
 	const sapiUrl = `${SAPI_PATH}?apiKey=${CAPI_KEY}`;
 	const sapiQuery = constructSAPIQuery( params );
@@ -250,6 +280,12 @@ function search(params) {
 	};
 	debug(`search: sapiQuery=${JSON.stringify(sapiQuery)}`);
 
+	const cachedSearchItem = readSearchCache( options );
+	if (cachedSearchItem !== undefined) {
+		console.log(`search: cache hit: sapiQuery=${JSON.stringify(sapiQuery)}`);
+		return Promise.resolve(cachedSearchItem);
+	}
+
 	return fetchResText(sapiUrl, options)
 	.then( text => {
 		let sapiObj;
@@ -261,10 +297,13 @@ function search(params) {
 				text=${text},
 				params=${params}`);
 		}
-		return {
+		const searchItem = {
 			params,
 			sapiObj
 		};
+
+		writeSearchCache(options, searchItem)
+		return searchItem;
 	} )
 	.catch( err => {
 		console.log(`ERROR: search: err=${err}.`);
