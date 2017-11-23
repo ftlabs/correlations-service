@@ -278,6 +278,15 @@ app.get('/v2ApiCall/', (req, res) => {
   ;
 });
 
+app.get('/exhaustivelyPainfulDataConsistencyCheck', (req, res) => {
+  correlate.exhaustivelyPainfulDataConsistencyCheck()
+  .then( obj => {
+    console.log( `exhaustivelyPainfulDataConsistencyCheck: response json: ${JSON.stringify(obj)}`);
+    res.json( obj );
+  })
+  ;
+});
+
 //---
 
 function startListening(){

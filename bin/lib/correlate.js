@@ -644,7 +644,7 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 	.then( promisersForImages => directly( CAPI_CONCURRENCE, promisersForImages ) )
 	.then( () => {
 		// warn if any link has no articles
-		
+
 		const warnPreface = `WARNING: fetchCalcChainWithArticlesBetween: for entity1=${entity1}, entity2=${entity2}:`;
 		if (chainDetails['articlesPerLink'].length == 0) {
 			console.log(`${warnPreface} empty articlesPerLink`);
@@ -977,6 +977,91 @@ function calcCoocsForEntities( entities, max=10 ){
 	};
 }
 
+function exhaustivelyPainfulDataConsistencyCheck(){
+	const startMillis = Date.now();
+
+	// loop over every island
+	//  loop over every pair of entities
+	//   add the pair to the list
+
+	const islandSizes = [];
+	const pairs = [];
+
+	allIslands.forEach( (island, i) => {
+		entities = Object.keys(island).sort();
+		islandSizes.push(entities.length);
+
+		entities.forEach( (entity1, e1) => {
+			for (let e2 = e1 + 1; e2 < entities.length; e2++) {
+				let entity2 = entities[e2];
+				pairs.push([entity1, entity2]);
+				// console.log( `DEBUG: exhaustivelyPainfulDataConsistencyCheck: entity1 ${e1} = ${entity1}, entity2 ${e2} = ${entity2}`);
+			}
+		});
+	});
+
+	// generate the promiser for each pair
+
+	const warningCounts = [];
+
+	const promisers = pairs.map( (pair, p) => {
+		return function () {
+			return fetchCalcChainWithArticlesBetween(pair[0], pair[1])
+			.catch( err => {
+				console.log( `ERROR: exhaustivelyPainfulDataConsistencyCheck: promise for entity1=${pair[0]} and entity2=${pair[1]}, err=${err}`);
+				return;
+			})
+			.then( chainDetails => {
+				const warnings = [];
+				const warnPreface = `WARNING: exhaustivelyPainfulDataConsistencyCheck: for entity1=${pair[0]}, entity2=${pair[1]}:`;
+				if (chainDetails['articlesPerLink'].length == 0) {
+					warnings.push(`${warnPreface} empty articlesPerLink`);
+				} else {
+					chainDetails['articlesPerLink'].forEach( (link, i) => {
+							if (link == null) {
+								warnings.push(`${warnPreface} link ${i} is null`);
+							} else if (link.length == 0) {
+								warnings.push(`${warnPreface} link ${i} is empty`);
+							}
+					} );
+				}
+
+				warningCounts[p] = warnings.length;
+				return warnings;
+			})
+			;
+		};
+	})
+
+	// funnel the promisers through 'directly'
+	// report results
+
+	return directly(FACETS_CONCURRENCE, promisers)
+	.then( listsOfWarnings => {
+		return {
+			description      : 'exhaustivelyPainfulDataConsistencyCheck: invoking fetchCalcChainWithArticlesBetween on each pair of entities on each island, looking for responses which are have no articles in one or more links of the chain. Warning: this hammers the back end(s), so should not be done lightly. If the response takes too long and times out in the browser, it is worth checking the logs since the response is logged in full when the back end call finally completes.',
+			totalWarnings    : warningCounts.reduce( (prev, curr) => prev + curr ),
+			context : {
+				numIslands       : allIslands.length,
+				islandSizes      : islandSizes.join(','),
+				totalIslandsSize : islandSizes.reduce( (prev, curr) => prev + curr ),
+				totalPairs       : pairs.length,
+				durationMillis   : Date.now() - startMillis,
+			},
+			warningCounts    : warningCounts.join(','),
+			listsOfWarnings  : listsOfWarnings.filter( list => { return list.length> 0; }),
+		};
+	})
+	;
+
+	// return Promise.resolve({
+	// 	numIslands       : allIslands.length,
+	// 	islandSizes      : islandSizes,
+	// 	totalIslandsSize : islandSizes.reduce( (prev, curr) => prev + curr ),
+	// 	totalPairs       : pairs.length,
+	// });
+}
+
 module.exports = {
 	fetchUpdateCorrelationsLatest,
 	fetchUpdateCorrelationsEarlier,
@@ -1000,4 +1085,5 @@ module.exports = {
 	ontology    : function() { return ONTOLOGY; },
 	biggestIsland : function(){ return biggestIsland; },
 	newlyAppearedEntities : function(){ return newlyAppearedEntities; },
+	exhaustivelyPainfulDataConsistencyCheck,
 };
