@@ -1,6 +1,5 @@
 const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
-const cache        = require('./cache');
 const v1v2         = require('./v1v2'); // obtain all the CAPI v1 and v2 variants of an entity
 const directly     = require('./directly'); 	// trying Rhys' https://github.com/wheresrhys/directly.
 						// You pass 'directly' a list of fns, each of which generates a promise.
@@ -10,7 +9,7 @@ const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
 const CAPI_CONCURRENCE   = (process.env.hasOwnProperty('CAPI_CONCURRENCE'  ))? process.env.CAPI_CONCURRENCE   : 4;
 
-const DEFAULT_DELAY_MILLIS = 1;
+const DEFAULT_DELAY_MILLIS = 20;
 const FACETS_DELAY_MILLIS = (process.env.hasOwnProperty('FACETS_DELAY_MILLIS'))? process.env.FACETS_DELAY_MILLIS : DEFAULT_DELAY_MILLIS;
 const CAPI_DELAY_MILLIS   = (process.env.hasOwnProperty('CAPI_DELAY_MILLIS'  ))? process.env.CAPI_DELAY_MILLIS   : DEFAULT_DELAY_MILLIS;
 
@@ -451,7 +450,8 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			summaryData['delta'] = delta;
 			console.log(`fetchUpdateCorrelations: delta=${JSON.stringify(delta, null, 2)}`);
 
-			cache.clearAll();
+			fetchContent.flushAllCaches();
+
 			return summaryData;
 		})
 		;
@@ -804,10 +804,6 @@ function calcSoNearliesOnMainIslandByEntity(){
 
 	return soNearliesByEntity;
 }
-
-// function calcSoNearliesOnMainIsland(){
-// 	return cache.get( 'calcSoNearliesOnMainIsland', calcSoNearliesOnMainIslandImpl )
-// }
 
 // count how many times each entity appears in the intersection list of the soNearlies
 function calcMostBetweenSoNearliesOnMainIsland(sortBy=0){

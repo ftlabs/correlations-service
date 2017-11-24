@@ -3,7 +3,8 @@
 const fetch = require('node-fetch');
 const debug = require('debug')('bin:lib:fetchContent');
 
-const     extractUuid = require('./extract-uuid');
+const extractUuid = require('./extract-uuid');
+const SimpleCache = require('./simple-cache');
 // const individualUUIDs = require('./individualUUIDs');
 
 const CAPI_KEY = process.env.CAPI_KEY;
@@ -115,19 +116,13 @@ function constructSAPIQuery( params ) {
 	return full;
 }
 
-const ARTICLE_CACHE = {}; // use uuid as key
-function readArticleCache( key ){
-	return ARTICLE_CACHE[key];
-}
-function writeArticleCache( key, payload ){
-	ARTICLE_CACHE[key] = payload;
-}
+const ARTICLE_CACHE = new SimpleCache();
 
 function article(uuid) {
 	debug(`uuid=${uuid}`);
 	const capiUrl = `${CAPI_PATH}${uuid}?apiKey=${CAPI_KEY}`;
 
-	const articleItem = readArticleCache( uuid );
+	const articleItem = ARTICLE_CACHE.read( uuid );
 	if (articleItem !== undefined) {
 		debug(`article: cache hit: uuid=${uuid}`);
 		return Promise.resolve( articleItem );
@@ -136,7 +131,7 @@ function article(uuid) {
 	return fetchResText(capiUrl)
 	.then( text  => {
 		const articleItem = JSON.parse(text);
-		writeArticleCache( uuid, articleItem);
+		ARTICLE_CACHE.write( uuid, articleItem);
 		return articleItem;
 	})
 	;
@@ -248,15 +243,7 @@ function fetchResText(url, options){
 	;
 }
 
-const SEARCH_CACHE = {}; // use stringify of obj as key
-function readSearchCache( keyObj ){
-	const key = JSON.stringify(keyObj);
-	return SEARCH_CACHE[key];
-}
-function writeSearchCache( keyObj, payload ){
-	const key = JSON.stringify(keyObj);
-	SEARCH_CACHE[key] = payload;
-}
+const SEARCH_CACHE = new SimpleCache();
 
 function search(params) {
 	const sapiUrl = `${SAPI_PATH}?apiKey=${CAPI_KEY}`;
@@ -270,7 +257,8 @@ function search(params) {
 	};
 	debug(`search: sapiQuery=${JSON.stringify(sapiQuery)}`);
 
-	const cachedSearchItem = readSearchCache( options );
+	// const cachedSearchItem = readSearchCache( options );
+	const cachedSearchItem = SEARCH_CACHE.read( options );
 	if (cachedSearchItem !== undefined) {
 		debug(`search: cache hit: sapiQuery=${JSON.stringify(sapiQuery)}`);
 		return Promise.resolve(cachedSearchItem);
@@ -292,7 +280,8 @@ function search(params) {
 			sapiObj
 		};
 
-		writeSearchCache(options, searchItem)
+		// writeSearchCache(options, searchItem)
+		SEARCH_CACHE.write(options, searchItem);
 		return searchItem;
 	} )
 	.catch( err => {
@@ -383,4 +372,5 @@ module.exports = {
 	tmeIdToV2,
 	v2ApiCall,
 	summariseFetchTimings,
+	flushAllCaches : SimpleCache.flushAll
 };
