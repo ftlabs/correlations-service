@@ -1,4 +1,4 @@
-const  dotenv = require('dotenv').config({ silent : process.env.NODE_ENVIRONMENT === 'production'  });
+require('dotenv').config({ silent : process.env.NODE_ENV === 'production'  });
 const   debug = require('debug')('correlations:index');
 const express = require('express');
 const    path = require('path');
