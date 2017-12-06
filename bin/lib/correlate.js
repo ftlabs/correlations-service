@@ -1006,7 +1006,7 @@ function exhaustivelyPainfulDataConsistencyCheck(){
 	const islandSizes = [];
 	const pairs = [];
 
-	allIslands.forEach( (island, i) => {
+	allIslands.forEach( island => {
 		entities = Object.keys(island).sort();
 		islandSizes.push(entities.length);
 
