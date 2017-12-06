@@ -1,6 +1,5 @@
 const debug = require('debug')('bin:lib:correlate');
 const fetchContent = require('./fetchContent');
-const cache        = require('./cache');
 const v1v2         = require('./v1v2'); // obtain all the CAPI v1 and v2 variants of an entity
 const directly     = require('./directly'); 	// trying Rhys' https://github.com/wheresrhys/directly.
 						// You pass 'directly' a list of fns, each of which generates a promise.
@@ -8,7 +7,11 @@ const directly     = require('./directly'); 	// trying Rhys' https://github.com/
 
 const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
 const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
-const CAPI_CONCURRENCE = (process.env.hasOwnProperty('CAPI_CONCURRENCE'))? process.env.CAPI_CONCURRENCE : 4;
+const CAPI_CONCURRENCE   = (process.env.hasOwnProperty('CAPI_CONCURRENCE'  ))? process.env.CAPI_CONCURRENCE   : 4;
+
+const DEFAULT_DELAY_MILLIS = 20;
+const FACETS_DELAY_MILLIS = (process.env.hasOwnProperty('FACETS_DELAY_MILLIS'))? process.env.FACETS_DELAY_MILLIS : DEFAULT_DELAY_MILLIS;
+const CAPI_DELAY_MILLIS   = (process.env.hasOwnProperty('CAPI_DELAY_MILLIS'  ))? process.env.CAPI_DELAY_MILLIS   : DEFAULT_DELAY_MILLIS;
 
 const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
@@ -40,6 +43,23 @@ function logItem( location, obj ){
         date : new Date(now).toISOString(),
 		location : location,
 		    data : obj } );
+}
+
+// prefix each promiser with a new Promise which starts with a timeout
+function delayPromisers(promisers, delayMillis=DEFAULT_DELAY_MILLIS){
+	return promisers.map(p => {
+		return function() {
+			return new Promise((resolve) => {
+				setTimeout( () => { resolve( p() ); }, delayMillis);
+			})
+			;
+		};
+	});
+}
+
+function delayedDirectly( concurrence, promisers, delayMillis=DEFAULT_DELAY_MILLIS){
+	const delayedPromisers = delayPromisers( promisers, delayMillis);
+	return directly(concurrence,  delayedPromisers);
 }
 
 function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
@@ -91,7 +111,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 		};
 	});
 
-	return directly(FACETS_CONCURRENCE, entityPromisers)
+	return delayedDirectly(FACETS_CONCURRENCE, entityPromisers, FACETS_DELAY_MILLIS)
 		.then( searchResponses => {
 			const entityFacets = {};
 			for( let searchResponse of searchResponses ){
@@ -430,7 +450,8 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			summaryData['delta'] = delta;
 			console.log(`fetchUpdateCorrelations: delta=${JSON.stringify(delta, null, 2)}`);
 
-			cache.clearAll();
+			fetchContent.flushAllCaches();
+
 			return summaryData;
 		})
 		;
@@ -560,7 +581,8 @@ function createPromisersToPopulateChainDetails( chainDetails ){
 		if (index == 0) { return; }
 		const prevEntity = chainDetails.chain[index - 1];
 		const promiser = function() {
-			return fetchContent.searchUnixTimeRange(earliestAfterSecs, latestBeforeSecs, { constraints : [prevEntity, entity], maxResults : 100,})
+			// NB: by setting the 'before' param to -1, it allows the very latest articles to be considered
+			return fetchContent.searchUnixTimeRange(earliestAfterSecs, -1, { constraints : [prevEntity, entity], maxResults : 100,})
 				.catch( err => {
 					console.log( `ERROR: createPromisersToPopulateChainDetails: promise for entity=${entity}, err=${err}`);
 					return;
@@ -635,16 +657,16 @@ function fetchCalcChainWithArticlesBetween(entity1, entity2) {
 
 	// process each search result to get the list of titles for each link
 
-	return directly(FACETS_CONCURRENCE, promisersToPopulateChainDetails)
+	return delayedDirectly(FACETS_CONCURRENCE, promisersToPopulateChainDetails, FACETS_DELAY_MILLIS)
 	.then( searchResponses => searchResponses.map(sr => {return sr.sapiObj}) )
 	.then( sapiObjs => {
 		chainDetails['articlesPerLink'] = sapiObjs.map(extractArticleDetailsFromSapiObj);
 	})
 	.then( () => createPromisersToLookupCapiForChainDetails(chainDetails) )
-	.then( promisersForImages => directly( CAPI_CONCURRENCE, promisersForImages ) )
+	.then( promisersForImages => delayedDirectly( CAPI_CONCURRENCE, promisersForImages, CAPI_DELAY_MILLIS ) )
 	.then( () => {
 		// warn if any link has no articles
-		
+
 		const warnPreface = `WARNING: fetchCalcChainWithArticlesBetween: for entity1=${entity1}, entity2=${entity2}:`;
 		if (chainDetails['articlesPerLink'].length == 0) {
 			console.log(`${warnPreface} empty articlesPerLink`);
@@ -782,10 +804,6 @@ function calcSoNearliesOnMainIslandByEntity(){
 
 	return soNearliesByEntity;
 }
-
-// function calcSoNearliesOnMainIsland(){
-// 	return cache.get( 'calcSoNearliesOnMainIsland', calcSoNearliesOnMainIslandImpl )
-// }
 
 // count how many times each entity appears in the intersection list of the soNearlies
 function calcMostBetweenSoNearliesOnMainIsland(sortBy=0){
@@ -977,6 +995,84 @@ function calcCoocsForEntities( entities, max=10 ){
 	};
 }
 
+function exhaustivelyPainfulDataConsistencyCheck(){
+	console.log('WARNING: initiating exhaustivelyPainfulDataConsistencyCheck');
+	const startMillis = Date.now();
+
+	// loop over every island
+	//  loop over every pair of entities
+	//   add the pair to the list
+
+	const islandSizes = [];
+	const pairs = [];
+
+	allIslands.forEach( island => {
+		entities = Object.keys(island).sort();
+		islandSizes.push(entities.length);
+
+		entities.forEach( (entity1, e1) => {
+			for (let e2 = e1 + 1; e2 < entities.length; e2++) {
+				let entity2 = entities[e2];
+				pairs.push([entity1, entity2]);
+			}
+		});
+	});
+
+	// generate the promiser for each pair
+
+	const warningCounts = [];
+
+	const promisers = pairs.map( (pair, p) => {
+		return function () {
+			return fetchCalcChainWithArticlesBetween(pair[0], pair[1])
+			.catch( err => {
+				console.log( `ERROR: exhaustivelyPainfulDataConsistencyCheck: promise for entity1=${pair[0]} and entity2=${pair[1]}, err=${err}`);
+				return;
+			})
+			.then( chainDetails => {
+				const warnings = [];
+				const warnPreface = `WARNING: exhaustivelyPainfulDataConsistencyCheck: for entity1=${pair[0]}, entity2=${pair[1]}:`;
+				if (chainDetails['articlesPerLink'].length == 0) {
+					warnings.push(`${warnPreface} empty articlesPerLink`);
+				} else {
+					chainDetails['articlesPerLink'].forEach( (link, i) => {
+							if (link == null) {
+								warnings.push(`${warnPreface} link ${i} is null`);
+							} else if (link.length == 0) {
+								warnings.push(`${warnPreface} link ${i} is empty`);
+							}
+					} );
+				}
+
+				warningCounts[p] = warnings.length;
+				return warnings;
+			})
+			;
+		};
+	})
+
+	// funnel the promisers through 'directly'
+	// report results
+
+	return delayedDirectly(FACETS_CONCURRENCE, promisers, FACETS_DELAY_MILLIS)
+	.then( listsOfWarnings => {
+		return {
+			description      : 'exhaustivelyPainfulDataConsistencyCheck: invoking fetchCalcChainWithArticlesBetween on each pair of entities on each island, looking for responses which are have no articles in one or more links of the chain. Warning: this hammers the back end(s), so should not be done lightly. If the response takes too long and times out in the browser, it is worth checking the logs since the response is logged in full when the back end call finally completes.',
+			totalWarnings    : warningCounts.reduce( (prev, curr) => prev + curr ),
+			context : {
+				numIslands       : allIslands.length,
+				islandSizes      : islandSizes.join(','),
+				totalIslandsSize : islandSizes.reduce( (prev, curr) => prev + curr ),
+				totalPairs       : pairs.length,
+				durationMillis   : Date.now() - startMillis,
+			},
+			warningCounts    : warningCounts.join(','),
+			listsOfWarnings  : listsOfWarnings.filter( list => { return list.length> 0; }),
+		};
+	})
+	;
+}
+
 module.exports = {
 	fetchUpdateCorrelationsLatest,
 	fetchUpdateCorrelationsEarlier,
@@ -1000,4 +1096,5 @@ module.exports = {
 	ontology    : function() { return ONTOLOGY; },
 	biggestIsland : function(){ return biggestIsland; },
 	newlyAppearedEntities : function(){ return newlyAppearedEntities; },
+	exhaustivelyPainfulDataConsistencyCheck,
 };

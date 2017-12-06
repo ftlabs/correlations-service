@@ -3,7 +3,8 @@
 const fetch = require('node-fetch');
 const debug = require('debug')('bin:lib:fetchContent');
 
-const     extractUuid = require('./extract-uuid');
+const extractUuid = require('./extract-uuid');
+const SimpleCache = require('./simple-cache');
 // const individualUUIDs = require('./individualUUIDs');
 
 const CAPI_KEY = process.env.CAPI_KEY;
@@ -115,26 +116,30 @@ function constructSAPIQuery( params ) {
 	return full;
 }
 
+const ARTICLE_CACHE = new SimpleCache();
+
 function article(uuid) {
 	debug(`uuid=${uuid}`);
 	const capiUrl = `${CAPI_PATH}${uuid}?apiKey=${CAPI_KEY}`;
 
+	const articleItem = ARTICLE_CACHE.read( uuid );
+	if (articleItem !== undefined) {
+		debug(`article: cache hit: uuid=${uuid}`);
+		return Promise.resolve( articleItem );
+	}
+
 	return fetchResText(capiUrl)
-	.then( text  => JSON.parse(text) )
+	.then( text  => {
+		const articleItem = JSON.parse(text);
+		ARTICLE_CACHE.write( uuid, articleItem);
+		return articleItem;
+	})
 	;
 }
-
-const CACHED_ARTICLE_IMAGE_URLS = {};
 
 function articleImageUrl(uuid){
 	// lookup the full article details,
 	// then just return the image details: mainImage.members[0].binaryUrl
-
-	if (CACHED_ARTICLE_IMAGE_URLS.hasOwnProperty( uuid )) {
-		const imageUrl = CACHED_ARTICLE_IMAGE_URLS[uuid];
-		debug(`articleImageUrl: uuid=${uuid}: cache hit: imageUrl=${imageUrl}`);
-		return Promise.resolve( imageUrl );
-	}
 
 	return article(uuid)
 	.then( json => {
@@ -151,7 +156,7 @@ function articleImageUrl(uuid){
 				debug(`articleImageUrl: uuid=${uuid}: cache miss: imageUrl=${imageUrl}`);
 				imageUrl = json.mainImage.members[0].binaryUrl;
 			}
-			CACHED_ARTICLE_IMAGE_URLS[uuid] = imageUrl
+
 			return imageUrl;
 	});
 }
@@ -238,6 +243,8 @@ function fetchResText(url, options){
 	;
 }
 
+const SEARCH_CACHE = new SimpleCache();
+
 function search(params) {
 	const sapiUrl = `${SAPI_PATH}?apiKey=${CAPI_KEY}`;
 	const sapiQuery = constructSAPIQuery( params );
@@ -250,6 +257,13 @@ function search(params) {
 	};
 	debug(`search: sapiQuery=${JSON.stringify(sapiQuery)}`);
 
+	// const cachedSearchItem = readSearchCache( options );
+	const cachedSearchItem = SEARCH_CACHE.read( options );
+	if (cachedSearchItem !== undefined) {
+		debug(`search: cache hit: sapiQuery=${JSON.stringify(sapiQuery)}`);
+		return Promise.resolve(cachedSearchItem);
+	}
+
 	return fetchResText(sapiUrl, options)
 	.then( text => {
 		let sapiObj;
@@ -261,10 +275,14 @@ function search(params) {
 				text=${text},
 				params=${params}`);
 		}
-		return {
+		const searchItem = {
 			params,
 			sapiObj
 		};
+
+		// writeSearchCache(options, searchItem)
+		SEARCH_CACHE.write(options, searchItem);
+		return searchItem;
 	} )
 	.catch( err => {
 		console.log(`ERROR: search: err=${err}.`);
@@ -287,11 +305,16 @@ function unixTimeToIsoTime(unixTime){
 function searchUnixTimeRange(afterSecs, beforeSecs, params={} ) {
 	// into this form: 2017-05-29T10:00:00Z
 	const  afterIsotime = unixTimeToIsoTime( afterSecs);
-	const beforeIsotime = unixTimeToIsoTime(beforeSecs);
 	const timeConstraints = [
-		`lastPublishDateTime:>${afterIsotime}`,
-		`lastPublishDateTime:<${beforeIsotime}`
+		`lastPublishDateTime:>${afterIsotime}`
 	];
+	// Only include the 'before' constraint if it is later than the 'after' constraint.
+	// allowing -1 to be used to not limit the receny of the range, i.e. accept the very latest articles.
+	// The assumption is that afterSeacs is *always* set to a valid value.
+	if (beforeSecs > afterSecs) {
+		const beforeIsotime = unixTimeToIsoTime(beforeSecs);
+		timeConstraints.push(`lastPublishDateTime:<${beforeIsotime}`);
+	}
 
 	if (! params.hasOwnProperty('constraints')) {
 		params.constraints = [];
@@ -349,4 +372,5 @@ module.exports = {
 	tmeIdToV2,
 	v2ApiCall,
 	summariseFetchTimings,
+	flushAllCaches : SimpleCache.flushAll
 };
