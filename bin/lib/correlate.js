@@ -13,6 +13,8 @@ const DEFAULT_DELAY_MILLIS = 20;
 const FACETS_DELAY_MILLIS = (process.env.hasOwnProperty('FACETS_DELAY_MILLIS'))? process.env.FACETS_DELAY_MILLIS : DEFAULT_DELAY_MILLIS;
 const CAPI_DELAY_MILLIS   = (process.env.hasOwnProperty('CAPI_DELAY_MILLIS'  ))? process.env.CAPI_DELAY_MILLIS   : DEFAULT_DELAY_MILLIS;
 
+const UUID_REGEX = /^[0-9a-f]+(-[0-9a-f]+)+$/;
+
 const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
 let         allIslands = []; // [ {}, {}, ... ]
@@ -82,6 +84,9 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 					const ontology = facet.name;
 					if (ontology !== ONTOLOGY) { return; }
 					facet.facetElements.forEach( element => {
+						if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) {
+							return; // only accept <ontology>Id names which are in UUID form
+						}
 						const entity = `${ontology}:${element.name}`;
 						deltaEntities[entity] = element.count;
 					});
