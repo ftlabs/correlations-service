@@ -85,6 +85,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 					if (ontology !== ONTOLOGY) { return; }
 					facet.facetElements.forEach( element => {
 						if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) {
+							// console.log(`DEBUG: correlate.getLatestEntitiesMentioned: discarding element=${JSON.stringify(element,null,2)}`);
 							return; // only accept <ontology>Id names which are in UUID form
 						}
 						const entity = `${ontology}:${element.name}`;
@@ -137,6 +138,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 						const ontology = facet.name;
 						if (ontology !== ONTOLOGY) { continue; }
 						for( let element of facet.facetElements) {
+							if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) { continue; }
 							const entity = `${ontology}:${element.name}`;
 							if( entity == targetEntity ) { continue; }
 							if( ignoreEntities[entity] ) { continue; }
@@ -302,7 +304,7 @@ function checkAllCoocsForSymmetryProblems(){
 			}
 
 			if ( ! knownEntities.hasOwnProperty(e2)) {
-				problems.push(`allCoocs[${e1}] key, ${e2}, not in knownEntities`);
+				problems.push(`allCoocs[${e1}] key, ${e2}, knownEntities`);
 			}
 		}
 	}
