@@ -118,6 +118,7 @@ function fetchLatestVariationsOfEntity( entity ){
 			console.log(`WARNING: fetchLatestVariationsOfEntity: entity=${entity}: v2IdDetails=${JSON.stringify(v2IdDetails)}: no v2IdDetails.prefLabel`);
 		} else {
 			variations['v2PrefLabel'] = v2IdDetails.prefLabel;
+			variations['v2Stuff'] = {};
 			variations['v2Stuff']['v2IdDetails'] = v2IdDetails;
 		}
 		if (! variations.hasOwnProperty('v2PrefLabel')) {
