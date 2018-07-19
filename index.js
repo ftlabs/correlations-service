@@ -181,6 +181,15 @@ app.get('/allEntities', (req, res) => {
 	res.json( correlate.allEntities() );
 });
 
+app.get('/allEntitiesWithPrefLabels', (req, res) => {
+  correlate.allEntitiesWithPrefLabels()
+	.then( obj => res.json( obj ) );
+});
+
+app.get('/entityPrefLabels', (req, res) => {
+  res.json( correlate.entityPrefLabels() );
+});
+
 app.get('/newlyAppearedEntities', (req, res) => {
 	res.json( correlate.newlyAppearedEntities() );
 });

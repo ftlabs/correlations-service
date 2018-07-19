@@ -162,9 +162,24 @@ function fetchVariationsOfEntities( entities ){
 	return directly(V1V2_CONCURRENCE, entityPromisers);
 }
 
+function fetchPrefLabelsOfEntities( entities ){
+	return fetchVariationsOfEntities( entities )
+	.then( variationsList => {
+		const entityToPrefLabel = {};
+		variationsList.map( variation => {
+			if ( variation.hasOwnProperty('v2PrefLabel') ) {
+				entityToPrefLabel[variation.given.entity] = variation.v2PrefLabel;
+			}
+		});
+
+		return entityToPrefLabel;
+	})
+}
+
 module.exports = {
 	fetchVariationsOfEntity : fetchVariationsOfEntityFromCache,
 	fetchVariationsOfEntities,
+	fetchPrefLabelsOfEntities,
 	store        : function() { return STORE; },
 	store_errors : function() { return STORE_ERRORS; },
 };

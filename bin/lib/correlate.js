@@ -21,6 +21,7 @@ let         allIslands = []; // [ {}, {}, ... ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 let soNearliesOnMainIsland = []; // [ {}, {}, ... ]
 let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity: {entity2: [entities]}, byOverlap: {int : {entities}} }
+const entityPrefLabels = {};
 
 let biggestIsland = [];
 
@@ -189,6 +190,9 @@ function updateAllCoocsAndEntities( entitiesAndFacets ) {
 			allCoocs[entity][coocEntity] = true;
 		}
 	}
+
+	Object.assign( entityPrefLabels, entitiesAndFacets.v2PrefLabels );
+
 	debug(`updateAllCoocsAndEntities: countNewEntities=${countNewEntities}`);
 	return {
 		countNewEntities,
@@ -387,6 +391,17 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities))
 			.then( variationsOfEntities => {
 				endVariationsMillis = Date.now();
+
+				const entityToPrefLabel = {}; // distill prefLabel details
+				variationsOfEntities.map( variation => {
+					if (variation.hasOwnProperty('v2PrefLabel')) {
+						entityToPrefLabel[variation.given.entity] = variation.v2PrefLabel;
+					}
+				});
+
+				entitiesAndFacets['v2Details'] = variationsOfEntities;
+				entitiesAndFacets['v2PrefLabels'] = entityToPrefLabel;
+
 				return variationsOfEntities;
 			})
 			;
@@ -1080,6 +1095,22 @@ function exhaustivelyPainfulDataConsistencyCheck(){
 	;
 }
 
+function 	allEntities(){
+	return Object.keys( knownEntities ).sort();
+}
+
+function 	allEntitiesWithPrefLabels(){
+	const entities = allEntities();
+	return v1v2.fetchPrefLabelsOfEntities(entities)
+	.then( entityToPrefLabel => {
+		return {
+			entities,
+			prefLabels : entityToPrefLabel
+		};
+	})
+}
+
+
 module.exports = {
 	fetchUpdateCorrelationsLatest,
 	fetchUpdateCorrelationsEarlier,
@@ -1091,7 +1122,9 @@ module.exports = {
 	calcMostBetweenSoNearliesOnMainIsland,
 	allCoocs    : function(){ return allCoocs; },
 	allData     : getAllData,
-	allEntities : function(){ return Object.keys( knownEntities ).sort(); },
+	allEntities,
+	allEntitiesWithPrefLabels,
+	entityPrefLabels : function(){ return entityPrefLabels; },
 	allEntitiesCountsPairs : calcAllEntitiesCountsPairs,
 	allIslands  : function(){ return allIslands; },
 	calcSoNearliesOnMainIsland : function() { return soNearliesOnMainIsland;},
