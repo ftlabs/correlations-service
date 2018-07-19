@@ -388,25 +388,18 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		} )
 		.then( entitiesAndFacetsSnapshot => {
 			startVariationsMillis = Date.now();
-		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities))
-			.then( variationsOfEntities => {
-				endVariationsMillis = Date.now();
-
-				const entityToPrefLabel = {}; // distill prefLabel details
-				variationsOfEntities.map( variation => {
-					if (variation.hasOwnProperty('v2PrefLabel')) {
-						entityToPrefLabel[variation.given.entity] = variation.v2PrefLabel;
-					}
-				});
-
-				entitiesAndFacets['v2Details'] = variationsOfEntities;
-				entitiesAndFacets['v2PrefLabels'] = entityToPrefLabel;
-
-				return variationsOfEntities;
-			})
-			;
-		})
+		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities));
+		} )
 		.then( variationsOfEntities => {
+			entitiesAndFacets['v2Details'] = variationsOfEntities;
+			return v1v2.fetchPrefLabelsOfEntities(Object.keys(entitiesAndFacets.entities));
+		} )
+		.then( entityToPrefLabel => {
+			entitiesAndFacets['v2PrefLabels'] = entityToPrefLabel;
+			endVariationsMillis = Date.now();
+			return entityToPrefLabel;	
+		})
+		.then( entityToPrefLabel => {
 			startUpdatesMillis = Date.now();
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
