@@ -397,7 +397,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		.then( entityToPrefLabel => {
 			entitiesAndFacets['v2PrefLabels'] = entityToPrefLabel;
 			endVariationsMillis = Date.now();
-			return entityToPrefLabel;	
+			return entityToPrefLabel;
 		})
 		.then( entityToPrefLabel => {
 			startUpdatesMillis = Date.now();
@@ -920,10 +920,12 @@ function calcAllEntitiesCountsPairs() {
 function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 	const known = entities.filter( e => { return soNearliesOnMainIslandByEntity.hasOwnProperty(e); });
 	let soNearlies = [];
+	let soNearliesByOverlap = {};
 	const candidates = {};
 
 	if (known.length == 0) {
 		soNearlies = Object.keys(soNearliesOnMainIslandByEntity).slice(0,maxRecommendations);
+		soNearliesByOverlap[0] = soNearlies;
 	} else {
 
 		// count the overlapping soNearlies of all the entities,
@@ -954,6 +956,20 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 		});
 
 		soNearlies = candidateList.slice(0,maxRecommendations);
+
+		// break down the overlaps by overlap count (i.e. num of entities sharing each overlap)
+		for (let i = entities.length; i >= 0; i--) {
+			soNearliesByOverlap[i] = [];
+		}
+
+		// console.log(`DEBUG: correlate.calcSoNearliesForEntities: soNearliesByOverlap=${JSON.stringify(soNearliesByOverlap,null,2)},
+		// candidates=${JSON.stringify(candidates,null,2)}`);
+
+		for( let candidate of Object.keys(candidates) ){
+			const overlapCount = candidates[candidate];
+			soNearliesByOverlap[overlapCount].push(candidate);
+		}
+
 	}
 
 	return {
@@ -965,6 +981,7 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 		knownEntities: known,
 		maxRecommendations,
 		soNearlies,
+		soNearliesByOverlap,
 	};
 }
 
@@ -973,10 +990,12 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 function calcCoocsForEntities( entities, max=10 ){
 	const known = entities.filter( e => { return soNearliesOnMainIslandByEntity.hasOwnProperty(e); });
 	let coocs = [];
+	let coocsByOverlap = {};
 	const candidates = {};
 
 	if (known.length == 0) {
 		coocs = Object.keys(soNearliesOnMainIslandByEntity).slice(0,max);
+		coocsByOverlap[0] = coocs;
 	} else {
 
 		// count the overlapping coocs of all the entities,
@@ -996,6 +1015,20 @@ function calcCoocsForEntities( entities, max=10 ){
 		});
 
 		coocs = candidateList.slice(0,max);
+
+		// break down the overlaps by overlap count (i.e. num of entities sharing each overlap)
+		for (let i = entities.length; i >= 0; i--) {
+			coocsByOverlap[i] = [];
+		}
+
+		// console.log(`DEBUG: correlate.calcSoNearliesForEntities: soNearliesByOverlap=${JSON.stringify(soNearliesByOverlap,null,2)},
+		// candidates=${JSON.stringify(candidates,null,2)}`);
+
+		for( let candidate of Object.keys(candidates) ){
+			const overlapCount = candidates[candidate];
+			coocsByOverlap[overlapCount].push(candidate);
+		}
+
 	}
 
 	return {
@@ -1007,6 +1040,7 @@ function calcCoocsForEntities( entities, max=10 ){
 		knownEntities: known,
 		max,
 		coocs,
+		coocsByOverlap
 	};
 }
 
