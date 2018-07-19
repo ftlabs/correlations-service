@@ -169,6 +169,14 @@ function fetchPrefLabelsOfEntities( entities ){
 		variationsList.map( variation => {
 			if ( variation.hasOwnProperty('v2PrefLabel') ) {
 				entityToPrefLabel[variation.given.entity] = variation.v2PrefLabel;
+			} else {
+				const entity = variation.given.entity;
+				const entityPieces = entity.split(':');
+				const ontology = entityPieces[0];
+				const value = entityPieces[1];
+				if (! ontology.endsWith('Id')) { // assume the value part of the entity is the prefLabel for if the ontology does not end with 'Id'.
+					entityToPrefLabel[entity] = value; 
+				}
 			}
 		});
 
