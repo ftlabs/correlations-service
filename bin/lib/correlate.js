@@ -469,6 +469,11 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 
 			return summaryData;
 		})
+		.catch( err => {
+			const errMsg = `ERROR: correlate.fetchUpdateCorrelations: err.message=${err.message}`;
+			console.log( errMsg );
+			throw new Error(errMsg);
+		})
 		;
 }
 

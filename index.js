@@ -142,12 +142,20 @@ app.get('/searchLastSeconds/:seconds/:entity1/:entity2', (req, res) => {
 
 app.get('/updateCorrelations', (req, res) => {
 	correlate.fetchUpdateCorrelationsLatest()
-	.then( obj => res.json( obj ) );
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.json( `ERROR: /updateCorrelations: ${err.message}` );
+  })
+  ;
 });
 
 app.get('/updateCorrelationsEarlier/:seconds', (req, res) => {
 	correlate.fetchUpdateCorrelationsEarlier(req.params.seconds)
-	.then( obj => res.json( obj ) );
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.json( `ERROR: /updateCorrelationsEarlier: ${err.message}` );
+  })
+;
 });
 
 app.get('/allCoocs', (req, res) => {
@@ -345,6 +353,9 @@ function updateEverySoOften(count=0){
       correlate.fetchUpdateCorrelationsLatest()
       .then(summaryData => console.log(`updateEverySoOften: fetchUpdateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
       .then( () => updateEverySoOften(count+1) )
+      .catch( err => {
+        console.log( `ERROR: correlate.updateEverySoOften: err.message=${err.message}`);
+      })
       ;
     }, updateEveryMillis);
   }
