@@ -13,12 +13,15 @@ const DEFAULT_DELAY_MILLIS = 20;
 const FACETS_DELAY_MILLIS = (process.env.hasOwnProperty('FACETS_DELAY_MILLIS'))? process.env.FACETS_DELAY_MILLIS : DEFAULT_DELAY_MILLIS;
 const CAPI_DELAY_MILLIS   = (process.env.hasOwnProperty('CAPI_DELAY_MILLIS'  ))? process.env.CAPI_DELAY_MILLIS   : DEFAULT_DELAY_MILLIS;
 
+const UUID_REGEX = /^[0-9a-f]+(-[0-9a-f]+)+$/;
+
 const    knownEntities = {}; // { entity : articleCount }
 const         allCoocs = {}; // [entity1][entity2]=true
 let         allIslands = []; // [ {}, {}, ... ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 let soNearliesOnMainIsland = []; // [ {}, {}, ... ]
 let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity: {entity2: [entities]}, byOverlap: {int : {entities}} }
+const entityPrefLabels = {};
 
 let biggestIsland = [];
 
@@ -82,6 +85,10 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 					const ontology = facet.name;
 					if (ontology !== ONTOLOGY) { return; }
 					facet.facetElements.forEach( element => {
+						if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) {
+							// console.log(`DEBUG: correlate.getLatestEntitiesMentioned: discarding element=${JSON.stringify(element,null,2)}`);
+							return; // only accept <ontology>Id names which are in UUID form
+						}
 						const entity = `${ontology}:${element.name}`;
 						deltaEntities[entity] = element.count;
 					});
@@ -132,6 +139,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 						const ontology = facet.name;
 						if (ontology !== ONTOLOGY) { continue; }
 						for( let element of facet.facetElements) {
+							if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) { continue; }
 							const entity = `${ontology}:${element.name}`;
 							if( entity == targetEntity ) { continue; }
 							if( ignoreEntities[entity] ) { continue; }
@@ -182,6 +190,9 @@ function updateAllCoocsAndEntities( entitiesAndFacets ) {
 			allCoocs[entity][coocEntity] = true;
 		}
 	}
+
+	Object.assign( entityPrefLabels, entitiesAndFacets.v2PrefLabels );
+
 	debug(`updateAllCoocsAndEntities: countNewEntities=${countNewEntities}`);
 	return {
 		countNewEntities,
@@ -297,7 +308,7 @@ function checkAllCoocsForSymmetryProblems(){
 			}
 
 			if ( ! knownEntities.hasOwnProperty(e2)) {
-				problems.push(`allCoocs[${e1}] key, ${e2}, not in knownEntities`);
+				problems.push(`allCoocs[${e1}] key, ${e2}, knownEntities`);
 			}
 		}
 	}
@@ -377,14 +388,18 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		} )
 		.then( entitiesAndFacetsSnapshot => {
 			startVariationsMillis = Date.now();
-		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities))
-			.then( variationsOfEntities => {
-				endVariationsMillis = Date.now();
-				return variationsOfEntities;
-			})
-			;
-		})
+		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities));
+		} )
 		.then( variationsOfEntities => {
+			entitiesAndFacets['v2Details'] = variationsOfEntities;
+			return v1v2.fetchPrefLabelsOfEntities(Object.keys(entitiesAndFacets.entities));
+		} )
+		.then( entityToPrefLabel => {
+			entitiesAndFacets['v2PrefLabels'] = entityToPrefLabel;
+			endVariationsMillis = Date.now();
+			return entityToPrefLabel;
+		})
+		.then( entityToPrefLabel => {
 			startUpdatesMillis = Date.now();
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
@@ -453,6 +468,11 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			fetchContent.flushAllCaches();
 
 			return summaryData;
+		})
+		.catch( err => {
+			const errMsg = `ERROR: correlate.fetchUpdateCorrelations: err.message=${err.message}`;
+			console.log( errMsg );
+			throw new Error(errMsg);
 		})
 		;
 }
@@ -905,10 +925,12 @@ function calcAllEntitiesCountsPairs() {
 function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 	const known = entities.filter( e => { return soNearliesOnMainIslandByEntity.hasOwnProperty(e); });
 	let soNearlies = [];
+	let soNearliesByOverlap = {};
 	const candidates = {};
 
 	if (known.length == 0) {
 		soNearlies = Object.keys(soNearliesOnMainIslandByEntity).slice(0,maxRecommendations);
+		soNearliesByOverlap[0] = soNearlies;
 	} else {
 
 		// count the overlapping soNearlies of all the entities,
@@ -939,6 +961,20 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 		});
 
 		soNearlies = candidateList.slice(0,maxRecommendations);
+
+		// break down the overlaps by overlap count (i.e. num of entities sharing each overlap)
+		for (let i = entities.length; i >= 0; i--) {
+			soNearliesByOverlap[i] = [];
+		}
+
+		// console.log(`DEBUG: correlate.calcSoNearliesForEntities: soNearliesByOverlap=${JSON.stringify(soNearliesByOverlap,null,2)},
+		// candidates=${JSON.stringify(candidates,null,2)}`);
+
+		for( let candidate of Object.keys(candidates) ){
+			const overlapCount = candidates[candidate];
+			soNearliesByOverlap[overlapCount].push(candidate);
+		}
+
 	}
 
 	return {
@@ -950,6 +986,7 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 		knownEntities: known,
 		maxRecommendations,
 		soNearlies,
+		soNearliesByOverlap,
 	};
 }
 
@@ -958,10 +995,12 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 function calcCoocsForEntities( entities, max=10 ){
 	const known = entities.filter( e => { return soNearliesOnMainIslandByEntity.hasOwnProperty(e); });
 	let coocs = [];
+	let coocsByOverlap = {};
 	const candidates = {};
 
 	if (known.length == 0) {
 		coocs = Object.keys(soNearliesOnMainIslandByEntity).slice(0,max);
+		coocsByOverlap[0] = coocs;
 	} else {
 
 		// count the overlapping coocs of all the entities,
@@ -981,6 +1020,20 @@ function calcCoocsForEntities( entities, max=10 ){
 		});
 
 		coocs = candidateList.slice(0,max);
+
+		// break down the overlaps by overlap count (i.e. num of entities sharing each overlap)
+		for (let i = entities.length; i >= 0; i--) {
+			coocsByOverlap[i] = [];
+		}
+
+		// console.log(`DEBUG: correlate.calcSoNearliesForEntities: soNearliesByOverlap=${JSON.stringify(soNearliesByOverlap,null,2)},
+		// candidates=${JSON.stringify(candidates,null,2)}`);
+
+		for( let candidate of Object.keys(candidates) ){
+			const overlapCount = candidates[candidate];
+			coocsByOverlap[overlapCount].push(candidate);
+		}
+
 	}
 
 	return {
@@ -992,6 +1045,7 @@ function calcCoocsForEntities( entities, max=10 ){
 		knownEntities: known,
 		max,
 		coocs,
+		coocsByOverlap
 	};
 }
 
@@ -1073,6 +1127,28 @@ function exhaustivelyPainfulDataConsistencyCheck(){
 	;
 }
 
+function 	allEntities(){
+	return Object.keys( knownEntities ).sort();
+}
+
+function 	allEntitiesWithPrefLabels(){
+	const entities = allEntities();
+	return v1v2.fetchPrefLabelsOfEntities(entities)
+	.then( entityToPrefLabel => {
+		return {
+			entities,
+			prefLabels : entityToPrefLabel
+		};
+	})
+	.catch( err => {
+		const errMsg = `ERROR: correlate.allEntitiesWithPrefLabels: err.message=${err.message}`;
+		console.log(errMsg);
+		throw new Error( errMsg );
+	})
+	;
+}
+
+
 module.exports = {
 	fetchUpdateCorrelationsLatest,
 	fetchUpdateCorrelationsEarlier,
@@ -1084,7 +1160,9 @@ module.exports = {
 	calcMostBetweenSoNearliesOnMainIsland,
 	allCoocs    : function(){ return allCoocs; },
 	allData     : getAllData,
-	allEntities : function(){ return Object.keys( knownEntities ).sort(); },
+	allEntities,
+	allEntitiesWithPrefLabels,
+	entityPrefLabels : function(){ return entityPrefLabels; },
 	allEntitiesCountsPairs : calcAllEntitiesCountsPairs,
 	allIslands  : function(){ return allIslands; },
 	calcSoNearliesOnMainIsland : function() { return soNearliesOnMainIsland;},

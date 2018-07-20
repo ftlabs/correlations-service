@@ -99,12 +99,18 @@ app.get('/', (req, res) => {
 
 app.get('/article/:uuid', (req, res) => {
 	fetchContent.article(req.params.uuid)
-	.then( obj => res.json( obj ) );
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /article: ${err.message}` );
+  })
 });
 
 app.get('/searchByUUID/:uuid', (req, res) => {
 	fetchContent.searchByUUID(req.params.uuid)
-	.then( obj => res.json( obj ) );
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /searchByUUID: ${err.message}` );
+  })
 });
 
 app.get('/searchLastSeconds/:seconds', (req, res) => {
@@ -112,7 +118,10 @@ app.get('/searchLastSeconds/:seconds', (req, res) => {
 	const nowSecs = Math.floor( Date.now() / 1000 );
 
 	fetchContent.searchUnixTimeRange(nowSecs - interval, nowSecs)
-	.then( obj => res.json( obj ) );
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /searchLastSeconds: ${err.message}` );
+  })
 });
 
 app.get('/searchLastSeconds/:seconds/:entity', (req, res) => {
@@ -124,7 +133,10 @@ app.get('/searchLastSeconds/:seconds/:entity', (req, res) => {
     constraints: [entity],
     maxResults : 100,
   })
-	.then( obj => res.json( obj ) );
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /searchLastSeconds: ${err.message}` );
+  })
 });
 
 app.get('/searchLastSeconds/:seconds/:entity1/:entity2', (req, res) => {
@@ -137,17 +149,28 @@ app.get('/searchLastSeconds/:seconds/:entity1/:entity2', (req, res) => {
     constraints : [entity1, entity2],
      maxResults : 100,
   })
-	.then( obj => res.json( obj ) );
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /searchLastSeconds: ${err.message}` );
+  })
 });
 
 app.get('/updateCorrelations', (req, res) => {
 	correlate.fetchUpdateCorrelationsLatest()
-	.then( obj => res.json( obj ) );
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /updateCorrelations: ${err.message}` );
+  })
+  ;
 });
 
 app.get('/updateCorrelationsEarlier/:seconds', (req, res) => {
 	correlate.fetchUpdateCorrelationsEarlier(req.params.seconds)
-	.then( obj => res.json( obj ) );
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /updateCorrelationsEarlier: ${err.message}` );
+  })
+;
 });
 
 app.get('/allCoocs', (req, res) => {
@@ -181,6 +204,18 @@ app.get('/allEntities', (req, res) => {
 	res.json( correlate.allEntities() );
 });
 
+app.get('/allEntitiesWithPrefLabels', (req, res) => {
+  correlate.allEntitiesWithPrefLabels()
+	.then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /allEntitiesWithPrefLabels: ${err.message}` );
+  })
+});
+
+app.get('/entityPrefLabels', (req, res) => {
+  res.json( correlate.entityPrefLabels() );
+});
+
 app.get('/newlyAppearedEntities', (req, res) => {
 	res.json( correlate.newlyAppearedEntities() );
 });
@@ -211,6 +246,9 @@ app.get('/calcChainLengthsFrom/:entity', (req, res) => {
 app.get('/calcChainWithArticlesBetween/:entity1/:entity2', (req, res) => {
 	correlate.fetchCalcChainWithArticlesBetween(req.params.entity1, req.params.entity2)
   .then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /calcChainWithArticlesBetween: ${err.message}` );
+  })
   ;
 });
 
@@ -246,6 +284,9 @@ app.get('/searchByEntityWithFacets/:entity', (req, res) => {
   const entity = req.params.entity;
 	fetchContent.searchByEntityWithFacets(entity)
   .then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /searchByEntityWithFacets: ${err.message}` );
+  })
   ;
 });
 
@@ -253,6 +294,9 @@ app.get('/v1v2/entity/:entity', (req, res) => {
   const entity = req.params.entity;
 	v1v2.fetchVariationsOfEntity(entity)
   .then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /v1v2/entity: ${err.message}` );
+  })
   ;
 });
 
@@ -268,6 +312,9 @@ app.get('/tmeIdToV2/:entity', (req, res) => {
   const entity = req.params.entity;
 	fetchContent.tmeIdToV2(entity)
   .then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /tmeIdToV2: ${err.message}` );
+  })
   ;
 });
 
@@ -275,6 +322,9 @@ app.get('/v2ApiCall/', (req, res) => {
   const url = req.query.url;
 	fetchContent.v2ApiCall(url)
   .then( obj => res.json( obj ) )
+  .catch( err => {
+    res.status(500).send( `ERROR: /v2ApiCall: ${err.message}` );
+  })
   ;
 });
 
@@ -283,6 +333,9 @@ app.get('/exhaustivelyPainfulDataConsistencyCheck', (req, res) => {
   .then( obj => {
     console.log( `exhaustivelyPainfulDataConsistencyCheck: response json: ${JSON.stringify(obj)}`);
     res.json( obj );
+  })
+  .catch( err => {
+    res.status(500).send( `ERROR: /exhaustivelyPainfulDataConsistencyCheck: ${err.message}` );
   })
   ;
 });
@@ -336,6 +389,9 @@ function updateEverySoOften(count=0){
       correlate.fetchUpdateCorrelationsLatest()
       .then(summaryData => console.log(`updateEverySoOften: fetchUpdateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
       .then( () => updateEverySoOften(count+1) )
+      .catch( err => {
+        console.log( `ERROR: correlate.updateEverySoOften: err.message=${err.message}`);
+      })
       ;
     }, updateEveryMillis);
   }

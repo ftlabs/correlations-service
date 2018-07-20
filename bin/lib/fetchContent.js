@@ -20,6 +20,11 @@ function tmeIdToV2Url( tmeId ){
 	return `${CONCORDANCES_PATH}?identifierValue=${tmeId}&authority=http://api.ft.com/system/FT-TME&apiKey=${CAPI_KEY}`;
 }
 
+const V2_THINGS_API = 'https://api.ft.com/things/';
+
+const UUID_REGEX = /^[0-9a-f]+(-[0-9a-f]+)+$/;
+
+
 // NB: should only match basic ontology values, maybe with Id suffix, e.g. people and peopleId,
 // and *not* other constraint fields such as lastPublishDateTime
 const EntityRegex = /^([a-z]+(?:Id)?):(.+)$/;
@@ -348,7 +353,9 @@ function tmeIdToV2( tmeId ){
 	;
 }
 
-function v2ApiCall( apiUrl ){
+function v2ApiCall( urlOrUUID ){
+	// accept either a url of the form https://api.ft.com/things/<UUID> or a UUID
+	const apiUrl = (urlOrUUID.match(UUID_REGEX))? `${V2_THINGS_API}${urlOrUUID}` : urlOrUUID;
 	const url = `${apiUrl}?apiKey=${CAPI_KEY}`;
 	debug(`v2ApiCall: url=${url}`);
 	return fetchResText(url)
