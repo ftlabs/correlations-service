@@ -1140,6 +1140,12 @@ function 	allEntitiesWithPrefLabels(){
 			prefLabels : entityToPrefLabel
 		};
 	})
+	.catch( err => {
+		const errMsg = `ERROR: correlate.allEntitiesWithPrefLabels: err.message=${err.message}`;
+		console.log(errMsg);
+		throw new Error( errMsg );
+	})
+	;
 }
 
 
