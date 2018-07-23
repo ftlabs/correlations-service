@@ -90,7 +90,7 @@ app.get('/', (req, res) => {
   let island = (islands.length > 0)? islands[0] : [ {'entity1': true, 'entity2' : true}];
   const entities = Object.keys(island);
   res.render('home', {
-    ontology : correlate.ontology(),
+    ontology : correlate.ontologies(),
     entity1 : entities[0],
     entity2 : entities[entities.length -1],
     entity1a : entities[1],

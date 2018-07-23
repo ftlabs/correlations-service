@@ -78,7 +78,7 @@ function constructSAPIQuery( params ) {
 		     offset : 0,
 		    aspects : [ "title",  "lifecycle", "images"], // [ "title", "location", "summary", "lifecycle", "metadata"],
 		constraints : [],
-		   ontology : "people",
+		 ontologies : ["people"],
 	};
 
 	const combined = Object.assign({}, defaults, params);
@@ -94,15 +94,8 @@ function constructSAPIQuery( params ) {
 
 	queryString = queryString + ' and brand:-\"FirstFT\"'; // override to ensure we don't get firstFT articles (which are ARTICLES not BLOGS)
 
-	// for whichever ontology we pick,
-	// make sure we have the with and without Id variations for the facets.
-	const facets = [combined.ontology];
-	if (combined.ontology.match(/Id$/)) {
-		facets.push( combined.ontology.replace(/Id$/, ''));
-	} else {
-		facets.push( combined.ontology + 'Id' );
-	}
-
+	const facets = combined.ontologies.slice(0);
+	
 	const full = {
   	"queryString": queryString,
   	"queryContext" : {
