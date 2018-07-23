@@ -1,11 +1,11 @@
-<h1>FTLabs: exploring correlations between {{ontology}} named in articles</h1>
+<h1>FTLabs: exploring correlations between {{ontologiesString}} named in articles</h1>
 
 <p>Based on Slurp, an app written 2 years ago to explore all correlations of entities named in FT articles
   (which drove <a href="https://labs.ft.com/2015/07/six-degrees-of-angela-merkel/">Six Degrees of Angela Merkel</a>)
-  this app (codenamed 'Lick', aka Slurp-lite) looks at correlations of just the {{ontology}} named in articles,
+  this app (codenamed 'Lick', aka Slurp-lite) looks at correlations of just the {{ontologiesString}} entities named in articles,
   particularly to support the Merkel Chain idea from the original project (when the ontology is people). It is a full rewrite (in Node) from the original (in Ruby + S3 buckets).</p>
 
-<p>Two {{ontology}} entities are 'correlated' if they are both named metadata entities in the same FT article.</p>
+<p>Two entities are 'correlated' if they are both named metadata entities in the same FT article.</p>
 
 <p>Using the idea of 'six degrees of Kevin Bacon', with films replaced by FT articles,
   we can connect entities together or create a measure of the 'distance' between them.
@@ -33,6 +33,13 @@
     <li>e.g., <a href="/calcChainLengthsFrom/{{entity1}}" />how far is every other entity (on the same island) from {{entity1}}</a></li>
     <li>e.g., <a href="/calcChainLengthsFrom/{{entity2}}" />how far is every other entity (on the same island) from {{entity2}}</a></li>
   </ul>
+  <li>/calcChainLengthsFrom/:entity/:ontology</li>
+  <ul>
+    {{#each ontologies}}
+    <li>e.g., <a href="/calcChainLengthsFrom/{{../entity1}}/{{this}}" />how far is every other entity (on the same island) from {{../entity1}}, limited to {{this}}</a></li>
+    {{/each}}
+  </ul>
+
   <li>/calcSoNearliesOnMainIsland</li>
   <ul>
     <li><a href="/calcSoNearliesOnMainIsland" />which pairs never meet, but have the biggest overlap of coocs?</a></li>

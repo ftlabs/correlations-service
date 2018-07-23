@@ -90,7 +90,8 @@ app.get('/', (req, res) => {
   let island = (islands.length > 0)? islands[0] : [ {'entity1': true, 'entity2' : true}];
   const entities = Object.keys(island);
   res.render('home', {
-    ontology : correlate.ontologies(),
+    ontologiesString : correlate.ontologies().join(', '),
+    ontologies : correlate.ontologies(),
     entity1 : entities[0],
     entity2 : entities[entities.length -1],
     entity1a : entities[1],
@@ -241,6 +242,9 @@ app.get('/calcChainBetween/:entity1/:entity2', (req, res) => {
 
 app.get('/calcChainLengthsFrom/:entity', (req, res) => {
 	res.json( correlate.calcChainLengthsFrom(req.params.entity) );
+});
+app.get('/calcChainLengthsFrom/:entity/:ontology', (req, res) => {
+	res.json( correlate.calcChainLengthsFrom(req.params.entity, req.params.ontology) );
 });
 
 app.get('/calcChainWithArticlesBetween/:entity1/:entity2', (req, res) => {
