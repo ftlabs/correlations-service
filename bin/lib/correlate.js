@@ -89,7 +89,6 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 					if ( ! ONTOLOGIES.includes(ontology) ) { return; }
 					facet.facetElements.forEach( element => {
 						if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) {
-							// console.log(`DEBUG: correlate.getLatestEntitiesMentioned: discarding element=${JSON.stringify(element,null,2)}`);
 							return; // only accept <ontology>Id names which are in UUID form
 						}
 						const entity = `${ontology}:${element.name}`;
@@ -527,8 +526,6 @@ function findLinks(chainSoFar, targetEntity, bestChain=null, maxLength=null){
 	const     latest = chainSoFar[chainSoFar.length -1];
 	const candidates = Object.keys( allCoocs[latest] );
 
-	// console.log(`DEBUG: findLinks: latest=${latest}, chainSoFar.length=${chainSoFar.length}, candidates.length=${candidates.length}, bestChain.length=${(bestChain == null)? 0 : bestChain.length}`);
-
 	for( let candidate of candidates){
 		if (candidate == targetEntity) {
 			return chainSoFar.concat([candidate]);
@@ -931,6 +928,7 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 	const known = entities.filter( e => { return soNearliesOnMainIslandByEntity.hasOwnProperty(e); });
 	let soNearlies = [];
 	let soNearliesByOverlap = {};
+	let soNearliesByOverlapByOntology = {};
 	const candidates = {};
 
 	if (known.length == 0) {
@@ -972,14 +970,30 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 			soNearliesByOverlap[i] = [];
 		}
 
-		// console.log(`DEBUG: correlate.calcSoNearliesForEntities: soNearliesByOverlap=${JSON.stringify(soNearliesByOverlap,null,2)},
-		// candidates=${JSON.stringify(candidates,null,2)}`);
-
 		for( let candidate of Object.keys(candidates) ){
 			const overlapCount = candidates[candidate];
 			soNearliesByOverlap[overlapCount].push(candidate);
 		}
 
+		// calc soNearliesByOverlap groupedBy Ontology
+		const knownOntologies = {};
+		Object.keys(candidates).map( c => {
+			const cPieces = c.split(':');
+			const ontology = cPieces[0];
+			knownOntologies[ontology] = true;
+		});
+
+		Object.keys(soNearliesByOverlap).map( overlap => {
+			soNearliesByOverlapByOntology[overlap] = {};
+			Object.keys(knownOntologies).map( ontology => {
+				soNearliesByOverlapByOntology[overlap][ontology] = [];
+			});
+			soNearliesByOverlap[overlap].map( entity => {
+				const ePieces = entity.split(':');
+				const ontology = ePieces[0];
+				soNearliesByOverlapByOntology[overlap][ontology].push(entity);
+			});
+		});
 	}
 
 	return {
@@ -992,7 +1006,7 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 		knownEntities: known,
 		maxRecommendations,
 		soNearlies,
-		soNearliesByOverlap,
+		soNearliesByOverlapByOntology,
 	};
 }
 
@@ -1031,9 +1045,6 @@ function calcCoocsForEntities( entities, max=10 ){
 		for (let i = entities.length; i >= 0; i--) {
 			coocsByOverlap[i] = [];
 		}
-
-		// console.log(`DEBUG: correlate.calcSoNearliesForEntities: soNearliesByOverlap=${JSON.stringify(soNearliesByOverlap,null,2)},
-		// candidates=${JSON.stringify(candidates,null,2)}`);
 
 		for( let candidate of Object.keys(candidates) ){
 			const overlapCount = candidates[candidate];
