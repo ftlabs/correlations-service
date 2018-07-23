@@ -27,7 +27,7 @@ function send_post_metrics() {
 	var metric_line = "";
 
 	for(var i=0; i < filtered.length; i++) {
-		metric_line = metric_line + "demo." + correlate.ontology() + ".post." + filtered[i] + " " + parseFloat(postObj[filtered[i]]) + " " + Math.floor(Date.now() / 1000) + "\n";
+		metric_line = metric_line + "demo.ft-lab.correlations-service." + correlate.ontology() + ".post." + filtered[i] + " " + parseFloat(postObj[filtered[i]]) + " " + Math.floor(Date.now() / 1000) + "\n";
 	}
 
 	console.log(metric_line);
@@ -55,7 +55,7 @@ function send_get_metrics() {
 	var metric_line = "";
 
 	for(var i=0; i < filtered.length; i++) {
-		metric_line = metric_line + "demo."+correlate.ontology()+".get." + filtered[i] + " " + parseFloat(postObj[filtered[i]]) + " " + Math.floor(Date.now() / 1000) + "\n";
+		metric_line = metric_line + "demo.ft-lab.correlations-service."+correlate.ontology()+".get." + filtered[i] + " " + parseFloat(postObj[filtered[i]]) + " " + Math.floor(Date.now() / 1000) + "\n";
 	}
 
 	console.log(metric_line);
@@ -71,7 +71,10 @@ function send_get_metrics() {
 
 
 function test() {
-	console.log("demo."+ correlate.ontology() + ".post");
+	const data=correlate.summary();
+	const postObj = data["counts"];
+	console.log("TEST: " + postObj["knownEntities"]);
+	console.log(correlate.summary());
 }
 
 
