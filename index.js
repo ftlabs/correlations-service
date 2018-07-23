@@ -12,6 +12,7 @@ app.set('view engine', 'handlebars');
 const fetchContent = require('./bin/lib/fetchContent');
 const    correlate = require('./bin/lib/correlate');
 const         v1v2 = require('./bin/lib/v1v2');
+const      metrics = require('./bin/lib/metrics');
 
 const validateRequest = require('./bin/lib/check-token');
 
@@ -29,6 +30,11 @@ app.use('/static', express.static('static'));
 const TOKEN = process.env.TOKEN;
 if (! TOKEN ) {
   throw new Error('ERROR: TOKEN not specified in env');
+}
+
+const METRIC_INTERVAL = process.env.METRIC_INTERVAL;
+if (! METRIC_INTERVAL ) {
+  throw new Error('ERROR: METRIC_INTERVAL not specified in env');
 }
 
 app.get('/dummy', (req, res) => {
@@ -287,6 +293,7 @@ app.get('/exhaustivelyPainfulDataConsistencyCheck', (req, res) => {
   ;
 });
 
+
 //---
 
 function startListening(){
@@ -346,6 +353,7 @@ function updateEverySoOften(count=0){
 startup()
 .then(() => postStartup()        )
 .then(() => updateEverySoOften() )
+.then(() => {  var myInt = setInterval(metrics.send_metrics, METRIC_INTERVAL); })
 .then(() => console.log('full startup completed.') )
 .catch( err => {
   console.log(`ERROR: on startup: err=${err}`);
