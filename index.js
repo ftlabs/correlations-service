@@ -353,7 +353,8 @@ function updateEverySoOften(count=0){
 startup()
 .then(() => postStartup()        )
 .then(() => updateEverySoOften() )
-.then(() => {  var myInt = setInterval(metrics.send_metrics, METRIC_INTERVAL); })
+.then(() => {  var myInt = setInterval(metrics.send_post_metrics, METRIC_INTERVAL); })
+.then(() => {  var myInt = setInterval(metrics.send_get_metrics, METRIC_INTERVAL); })
 .then(() => console.log('full startup completed.') )
 .catch( err => {
   console.log(`ERROR: on startup: err=${err}`);
