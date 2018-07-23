@@ -589,6 +589,7 @@ function calcChainBetween(entity1, entity2) {
 	}
 
 	return {
+		'description' : "Two (or more) entities cooccur if they are cited in the same article(s). Two entities which do not cooccur may be indirectly connected by a shared cooccurrence. For any two non-cooccurring entities in the same graph (aka on the same island), it should be poassible to identify a chain of connections linking them.",
 		entity1,
 		entity2,
 		chain,
@@ -758,6 +759,7 @@ function calcChainLengthsFrom(rootEntity){
 	}
 
 	return {
+		'description' : "Two (or more) entities which are cited in the same article(s) are considered to cooccur. Two (or more) entities which do not cooccur may be indirectly connected by a shared cooccurrence called a so-nearly relationship. Entities which do not cooccur, and are not so-nearlies, may be a sequence of 2 cooccurences from each other, or 3, or 4, etc. Starting with the specified rootEntity, look for the entities which are coocs (links=1), the entities which are so-nearlies (links=2), the entities which are sequence of 2 coocs (links=3) away, etc. In the so-nearlies section, there are more details of how the entities are related: for each so-nearly, byEntity lists the shared coocs, and byOverlap lists the so-nearlies by the size of the shared coocs lists.",
 		rootEntity,
 		chainLengths,
 	}
@@ -860,7 +862,7 @@ function calcMostBetweenSoNearliesOnMainIsland(sortBy=0){
 		else                  { return  0; }
 	});
 	return {
-			'description' : 'looking at entities appear most often in the soNearlies intersections, i.e. are shared connections of entities who otherwise have to shared connections with each other. [count (1 per soNearly intersection), count (divided by length of intersection), count (divided by square of length)]',
+			'description' : "looking at entities which appear most often in the soNearlies intersections of other entities, i.e. they are shared connections of entities' connections who otherwise have no shared connections with each other. [count (1 per soNearly intersection), count (divided by length of intersection, to reduce significance if the intersection is large anyway), count (divided by square of length, downplaying significance of large intersections even more)]",
 			middleEntityCountsList
 		};
 }
@@ -981,6 +983,7 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 	}
 
 	return {
+		description : "Two (or more) entities cooccur if they are cited in the same article. Two (or more) entities which do not cooccur with each other, may nevertheless share an entity that they each cooccur with. This relationship is known as a 'so nearly'. soNearliesByOverlap exposes how many of the queried entities share the so-nearlies. E.g. if the query specified 3 entities, and the biggest overlap is 2, it means there are no entities which are so-nearlies of all 3 queryied entities.",
 		notes : [
 			'assumes entities are on main island',
 			{candidates}
@@ -1040,6 +1043,7 @@ function calcCoocsForEntities( entities, max=10 ){
 	}
 
 	return {
+		description: "Two entities cooccur if they are cited in the same article. Every entity will (probably) have a set of entities they cooccur with, albeit not necessarily all at the same time in the same articles. Two (or more) entities which do not themselves cooccur may share cooccurring entities. coocsByOverlap exposes how many of the queried entities share the same coocs. E.g. if there were 3 entities queried and the biggest overlap is 2, it means there were no entities which cooccurred with all 3 of the queried entities.",
 		notes : [
 			'assumes entities are on main island',
 			{candidates}
