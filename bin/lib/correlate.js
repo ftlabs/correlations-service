@@ -24,6 +24,7 @@ let         allIslands = []; // [ {}, {}, ... ]
 let allIslandsByEntity = {}; // { entity1 : island1, entity2 : island2, ...}
 let soNearliesOnMainIsland = []; // [ {}, {}, ... ]
 let soNearliesOnMainIslandByEntity = {}; // [entity1]={ byEntity: {entity2: [entities]}, byOverlap: {int : {entities}} }
+let soNearliesOnMainIslandByEntityFilteredByOntology = {};
 const entityPrefLabels = {};
 
 let biggestIsland = [];
@@ -430,6 +431,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
 			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
 			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
+			soNearliesOnMainIslandByEntityFilteredByOntology = calcSoNearliesOnMainIslandByEntityFilteredByOntology();
 			biggestIsland = calcIslandSortedByCount( (allIslands.length > 0)? allIslands[0] : [] );
 
 			endPostProcessingMillis = Date.now();
@@ -758,8 +760,8 @@ function calcChainLengthsFrom(rootEntity, limitToOntology=null){
 	} else {
 		chainLengths = findAllChainLengths(rootEntity,limitToOntology);
 		if (chainLengths.length >= 3) {
-			// filter by limitToOntology
 			chainLengths[2].soNearlies = soNearliesOnMainIslandByEntity[rootEntity];
+			chainLengths[2].soNearliesFilteredByOntology = soNearliesOnMainIslandByEntityFilteredByOntology[rootEntity];
 		}
 	}
 
@@ -835,34 +837,42 @@ function calcSoNearliesOnMainIslandByEntity(){
 	return soNearliesByEntity;
 }
 
-// function calcSoNearliesOnMainIslandByEntityFilteredByOntology(){
-// 	const soNearliesByEntityFilteredByOntology = {
-// 		// ontology : {
-// 		//   'byEntity' : {},
-// 		//   'byOverlap' : {}
-// 	  // }
-// 	};
-//
-// 	Object.keys(soNearliesOnMainIslandByEntity.byEntity).map( entity => {
-// 		const ontology = entity.split(':')[0];
-// 		if (! soNearliesByEntityFilteredByOntology.hasOwnProperty(ontology)) {
-// 			soNearliesByEntityFilteredByOntology[ontology] = {
-// 				  'byEntity' : {},
-// 			};
-// 		}
-//
-// 		const entitiesInOntology = soNearliesOnMainIslandByEntity.byEntity[entity].filter( e => {
-// 			e.startsWith(ontology+':')
-// 		});
-//
-// 		if (entitiesInOntology.length > 0) {
-// 			soNearliesByEntityFilteredByOntology[ontology].byEntity[entity] = entitiesInOntology;
-// 		}
-//
-// 	});
-//
-// 	return soNearliesByEntityFilteredByOntology;
-// }
+function calcSoNearliesOnMainIslandByEntityFilteredByOntology(){
+	const soNearliesByEntityFilteredByOntology = {
+		// entity : {
+		//  ontology : {
+		//    'byEntity' : {},
+		//    'byOverlap' : {}
+	  //  }
+	  //}
+	};
+
+	// loop over each entity in the main soNearlies map,
+	// and then the soNearlies of that entity, and distribute them according to ontology.
+	Object.keys(soNearliesOnMainIslandByEntity).map( rootEntity => {
+		if (! soNearliesByEntityFilteredByOntology.hasOwnProperty[rootEntity]) {
+			soNearliesByEntityFilteredByOntology[rootEntity] = {};
+		}
+		Object.keys(soNearliesOnMainIslandByEntity[rootEntity].byEntity).map( entity => {
+			const ontology = entity.split(':')[0];
+			if (! soNearliesByEntityFilteredByOntology[rootEntity].hasOwnProperty(ontology)) {
+				soNearliesByEntityFilteredByOntology[rootEntity][ontology] = {
+					  'byEntity' : {},
+				};
+			}
+
+			const entitiesInOntology = soNearliesOnMainIslandByEntity[rootEntity].byEntity[entity].filter( e => {
+				return e.startsWith(ontology+':')
+			});
+
+			if (entitiesInOntology.length > 0) {
+				soNearliesByEntityFilteredByOntology[rootEntity][ontology].byEntity[entity] = entitiesInOntology;
+			}
+		});
+	});
+
+	return soNearliesByEntityFilteredByOntology;
+}
 
 // count how many times each entity appears in the intersection list of the soNearlies
 function calcMostBetweenSoNearliesOnMainIsland(sortBy=0){
@@ -1222,6 +1232,9 @@ module.exports = {
 	allIslands  : function(){ return allIslands; },
 	calcSoNearliesOnMainIsland : function() { return soNearliesOnMainIsland;},
 	soNearliesOnMainIslandByEntity : function() { return soNearliesOnMainIslandByEntity;},
+	soNearliesOnMainIslandByEntityFilteredByOntology : function() {
+		return soNearliesOnMainIslandByEntityFilteredByOntology;
+	},
 	calcSoNearliesForEntities,
 	calcCoocsForEntities,
 	summary     : getSummaryData,
