@@ -1,4 +1,5 @@
 .env
+.env.swp
 node_modules/*
 *.log
 ./*.mp3
