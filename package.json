@@ -23,7 +23,7 @@
   "dependencies": {
     "@financial-times/s3o-middleware": "^2.0.4",
     "assert": "^1.4.1",
-    "aws-sdk": "^2.7.10",
+    "aws-sdk": "^2.281.1",
     "debug": "^2.3.3",
     "dotenv": "^2.0.0",
     "express": "^4.14.0",
