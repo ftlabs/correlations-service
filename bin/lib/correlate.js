@@ -83,6 +83,15 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 				numResults = sapiObj.results[0].indexCount;
 				sapiObj.results[0].facets.forEach( facet => {
 					const ontology = facet.name;
+
+					if (ontology === 'authors') {
+						facet.facetElements.forEach( element => {
+							const personFromAuthor = `people:${element.name}`;
+							ignoreEntities[personFromAuthor] = true;
+						});
+						return;
+					}
+
 					if (ontology !== ONTOLOGY) { return; }
 					facet.facetElements.forEach( element => {
 						if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) {
@@ -90,11 +99,20 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 							return; // only accept <ontology>Id names which are in UUID form
 						}
 						const entity = `${ontology}:${element.name}`;
-						deltaEntities[entity] = element.count;
+						if (! ignoreEntities[entity]) {
+							deltaEntities[entity] = element.count;
+						}
 					});
 				});
 			}
-			logItem('getLatestEntitiesMentioned', { afterSecs: afterSecs, beforeSecs : beforeSecs, numResults: numResults, 'deltaEntities.length' : deltaEntities.length, deltaEntities: deltaEntities });
+			logItem('getLatestEntitiesMentioned', {
+				afterSecs: afterSecs,
+				beforeSecs : beforeSecs,
+				numResults: numResults,
+				'deltaEntities.length' : deltaEntities.length,
+				deltaEntities: deltaEntities,
+				ignoreEntities: Object.keys(ignoreEntities),
+		 });
 			return deltaEntities
 		})
 		.catch( err => {
@@ -375,7 +393,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
-			console.log(`fetchUpdateCorrelations: num deltaEntities=${Object.keys(deltaEntities).length}, deltaEntities=${JSON.stringify(deltaEntities, null, 2)}`);
+			console.log(`fetchUpdateCorrelations: num deltaEntities=${Object.keys(deltaEntities).length}, deltaEntities=${JSON.stringify(deltaEntities, null, 2)}, ignoreEntities=${JSON.stringify(Object.keys(ignoreEntities), null, 2)}`);
 
 			startFacetSearchesMillis = Date.now();
 			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities)
