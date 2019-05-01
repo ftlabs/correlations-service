@@ -905,6 +905,7 @@ function getSummaryData(){
 			numDistinctCoocPairs : countAllCoocPairs(),
 			numNewlyAppearedEntities : newlyAppearedEntities.length,
 		},
+		ignoreEntities,
 	};
 }
 
