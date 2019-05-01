@@ -387,7 +387,7 @@ function updateEverySoOften(count=0){
     setTimeout(() => {
       console.log(`updateEverySoOften: count=${count}, UPDATE_EVERY_SECS=${updateEverySecs}`);
       correlate.fetchUpdateCorrelationsLatest()
-      .then(summaryData => console.log(`updateEverySoOften: fetchUpdateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
+      .then(summaryData => debug(`updateEverySoOften: fetchUpdateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
       .then( () => updateEverySoOften(count+1) )
       .catch( err => {
         console.log( `ERROR: correlate.updateEverySoOften: err.message=${err.message}`);
