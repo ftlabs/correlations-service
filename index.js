@@ -84,11 +84,39 @@ if (process.env.BYPASS_TOKEN !== 'true') {
 	app.use(validateRequest);
 }
 
+function sortIsland( island ){
+  // sort all the entities by count and then alphabetically,
+  // assuming island = { e1: num1, e2: num2, ...}
+  const entities = Object.keys(island).sort( (a,b) => {
+    if(island[a] < island[b]){ return +1; }
+    else if (island[a] > island[b]) { return -1; }
+    else {
+      if(a > b) { return +1;}
+      else if(a < b) { return -1;}
+      else { return 0; }
+     }
+  });
+
+  const sortedIsland = {};
+  entities.map( entity => {
+    sortedIsland[entity] = island[entity];
+  });
+
+  return {
+    entities,
+    sortedIsland
+  }
+}
+
 app.get('/', (req, res) => {
-	// res.sendFile(path.join(__dirname + '/static/index.html'));
+  // find the biggest island
   const islands = correlate.allIslands();
-  let island = (islands.length > 0)? islands[0] : [ {'entity1': true, 'entity2' : true}];
-  const entities = Object.keys(island);
+  let island = (islands.length > 0)? islands[0] : [ {'entity1': 1, 'entity2' : 1}];
+  const entities = sortIsland( island ).entities;
+
+  console.log( `DEBUG: /: island=${JSON.stringify(island, null, 2)},
+  entities=${JSON.stringify(entities, null, 2)}`);
+
   res.render('home', {
     ontology : correlate.ontology(),
     entity1 : entities[0],
@@ -225,9 +253,13 @@ app.get('/allEntitiesCountsPairs', (req, res) => {
 });
 
 app.get('/islandOf/:entity', (req, res) => {
+  const entity = req.params.entity;
+  const island = correlate.getIslandOfEntity(req.params.entity);
+  const sortedIsland = sortIsland( island).sortedIsland;
+
 	res.json( {
-		entity: req.params.entity,
-		island: correlate.getIslandOfEntity(req.params.entity)
+		entity,
+		sortedIsland
 	} );
 });
 
