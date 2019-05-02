@@ -83,22 +83,39 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 				numResults = sapiObj.results[0].indexCount;
 				sapiObj.results[0].facets.forEach( facet => {
 					const ontology = facet.name;
+
+					if (ontology === 'authors') {
+						facet.facetElements.forEach( element => {
+							const personFromAuthor = `people:${element.name}`;
+							ignoreEntities[personFromAuthor] = true;
+						});
+						return;
+					}
+
 					if (ontology !== ONTOLOGY) { return; }
 					facet.facetElements.forEach( element => {
 						if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) {
-							// console.log(`DEBUG: correlate.getLatestEntitiesMentioned: discarding element=${JSON.stringify(element,null,2)}`);
 							return; // only accept <ontology>Id names which are in UUID form
 						}
 						const entity = `${ontology}:${element.name}`;
-						deltaEntities[entity] = element.count;
+						if (! ignoreEntities[entity]) {
+							deltaEntities[entity] = element.count;
+						}
 					});
 				});
 			}
-			logItem('getLatestEntitiesMentioned', { afterSecs: afterSecs, beforeSecs : beforeSecs, numResults: numResults, 'deltaEntities.length' : deltaEntities.length, deltaEntities: deltaEntities });
+			logItem('getLatestEntitiesMentioned', {
+				afterSecs: afterSecs,
+				beforeSecs : beforeSecs,
+				numResults: numResults,
+				'deltaEntities.length' : deltaEntities.length,
+				deltaEntities: deltaEntities,
+				ignoreEntities: Object.keys(ignoreEntities),
+		 });
 			return deltaEntities
 		})
 		.catch( err => {
-			console.log( `getLatestEntitiesMentioned: err=${err}` );
+			console.log( `ERROR: getLatestEntitiesMentioned: err=${err}` );
 		})
 		;
 }
@@ -359,7 +376,7 @@ function fetchNewlyAppearedEntities(){
 
 // tie together the fetching of new data, and the post-processing of it
 function fetchUpdateCorrelations(afterSecs, beforeSecs) {
-	console.log(`fetchUpdateCorrelations: afterSecs=${afterSecs}, beforeSecs=${beforeSecs}`);
+	debug(`fetchUpdateCorrelations: afterSecs=${afterSecs}, beforeSecs=${beforeSecs}`);
 	const startInitialSearchMillis = Date.now();
 	let startFacetSearchesMillis;
 	let endFacetSearchesMillis;
@@ -375,7 +392,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
-			console.log(`fetchUpdateCorrelations: num deltaEntities=${Object.keys(deltaEntities).length}, deltaEntities=${JSON.stringify(deltaEntities, null, 2)}`);
+			debug(`fetchUpdateCorrelations: num deltaEntities=${Object.keys(deltaEntities).length}, deltaEntities=${JSON.stringify(deltaEntities, null, 2)}, ignoreEntities=${JSON.stringify(Object.keys(ignoreEntities), null, 2)}`);
 
 			startFacetSearchesMillis = Date.now();
 			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities)
@@ -463,7 +480,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			};
 
 			summaryData['delta'] = delta;
-			console.log(`fetchUpdateCorrelations: delta=${JSON.stringify(delta, null, 2)}`);
+			console.log(`INFO: fetchUpdateCorrelations: delta=${JSON.stringify(delta, null, 2)}`);
 
 			fetchContent.flushAllCaches();
 
@@ -523,8 +540,6 @@ function findLinks(chainSoFar, targetEntity, bestChain=null, maxLength=null){
 
 	const     latest = chainSoFar[chainSoFar.length -1];
 	const candidates = Object.keys( allCoocs[latest] );
-
-	// console.log(`DEBUG: findLinks: latest=${latest}, chainSoFar.length=${chainSoFar.length}, candidates.length=${candidates.length}, bestChain.length=${(bestChain == null)? 0 : bestChain.length}`);
 
 	for( let candidate of candidates){
 		if (candidate == targetEntity) {
@@ -657,7 +672,7 @@ function createPromisersToLookupCapiForChainDetails( chainDetails ){
 						article.mainImageUrl = url;
 					})
 					.catch( err => {
-						console.log( `createPromisersToLookupCapiForChainDetails: promise for article.id=${article.id}, err=${err}`);
+						console.log( `ERROR: createPromisersToLookupCapiForChainDetails: promise for article.id=${article.id}, err=${err}`);
 						return;
 					})
 				};
@@ -887,6 +902,7 @@ function getSummaryData(){
 			numDistinctCoocPairs : countAllCoocPairs(),
 			numNewlyAppearedEntities : newlyAppearedEntities.length,
 		},
+		ignoreEntitiesList : Object.keys(ignoreEntities).sort(),
 	};
 }
 
@@ -967,9 +983,6 @@ function calcSoNearliesForEntities( entities, maxRecommendations=10 ){
 			soNearliesByOverlap[i] = [];
 		}
 
-		// console.log(`DEBUG: correlate.calcSoNearliesForEntities: soNearliesByOverlap=${JSON.stringify(soNearliesByOverlap,null,2)},
-		// candidates=${JSON.stringify(candidates,null,2)}`);
-
 		for( let candidate of Object.keys(candidates) ){
 			const overlapCount = candidates[candidate];
 			soNearliesByOverlap[overlapCount].push(candidate);
@@ -1025,9 +1038,6 @@ function calcCoocsForEntities( entities, max=10 ){
 		for (let i = entities.length; i >= 0; i--) {
 			coocsByOverlap[i] = [];
 		}
-
-		// console.log(`DEBUG: correlate.calcSoNearliesForEntities: soNearliesByOverlap=${JSON.stringify(soNearliesByOverlap,null,2)},
-		// candidates=${JSON.stringify(candidates,null,2)}`);
 
 		for( let candidate of Object.keys(candidates) ){
 			const overlapCount = candidates[candidate];

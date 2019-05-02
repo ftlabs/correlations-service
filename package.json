@@ -21,23 +21,23 @@
   },
   "homepage": "https://github.com/ftlabs/...#readme",
   "dependencies": {
-    "@financial-times/s3o-middleware": "^2.0.4",
+    "@financial-times/s3o-middleware": "^3.0.1",
     "assert": "^1.4.1",
-    "aws-sdk": "^2.7.10",
+    "aws-sdk": "^2.446.0",
     "debug": "^2.3.3",
     "dotenv": "^2.0.0",
-    "express": "^4.14.0",
-    "express-handlebars": "^3.0.0",
-    "ffmpeg-static": "^2.0.0",
+    "express": "^4.16.4",
+    "express-handlebars": "^3.0.2",
+    "ffmpeg-static": "^2.4.0",
     "is-uuid": "^1.0.2",
     "md5": "^2.2.1",
     "node-fetch": "^1.6.3",
     "rss": "^1.2.1",
     "striptags": "^2.1.1",
-    "uuid": "^3.0.1",
+    "uuid": "^3.3.2",
     "xml2js": "^0.4.17"
   },
-  "engines" : {
-    "node" : "> 6.11.0 < 7.0.0"
+  "engines": {
+    "node": "> 6.11.0 < 7.0.0"
   }
 }

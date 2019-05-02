@@ -96,7 +96,7 @@ function constructSAPIQuery( params ) {
 
 	// for whichever ontology we pick,
 	// make sure we have the with and without Id variations for the facets.
-	const facets = [combined.ontology];
+	const facets = ['authors', combined.ontology]; // hack!! always include the authors ontology first
 	if (combined.ontology.match(/Id$/)) {
 		facets.push( combined.ontology.replace(/Id$/, ''));
 	} else {
