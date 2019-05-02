@@ -925,6 +925,115 @@ function getIslandOfEntity(entity){
 	}
 }
 
+function compareNumbers(a, b) {
+  return a - b;
+}
+
+function getStatsOfIslandOfEntity(rootIslandEntity){
+	const island = getIslandOfEntity(rootIslandEntity);
+
+	if (island === {} ) {
+		return {};
+	}
+
+	// get the basic connectvity details for each entity
+	const entityDetails = {}
+	const entities = Object.keys( island ).sort();
+	entities.forEach( entity => {
+		const chainLengthsFrom = calcChainLengthsFrom( entity );
+		let entityDetail = {};
+		if (chainLengthsFrom.chainLengths.length <= 1) {
+			entityDetail = {
+				maxChainLength: 0,
+				numDirectlyConnected: 0,
+				numIndirectlyConnected: 0,
+			}
+		} else {
+			entityDetail = {};
+
+			entityDetail.maxChainLength = (chainLengthsFrom.chainLengths.length -1);
+			entityDetail.numDirectlyConnected = chainLengthsFrom.chainLengths[1].entities.length;
+
+			if (chainLengthsFrom.chainLengths.length >= 3 ) {
+				entityDetail.numIndirectlyConnected = chainLengthsFrom.chainLengths[2].entities.length;
+			} else {
+				entityDetail.numIndirectlyConnected = 0;
+			}
+		}
+
+		entityDetails[entity] = entityDetail;
+	});
+
+	// drop the entities into assorted buckets
+	const buckets = {
+		maxChainLength: {},
+		numDirectlyConnected: {},
+		numIndirectlyConnected: {},
+	};
+
+	entities.forEach( entity => {
+		Object.keys(buckets).forEach( field => {
+			const val = entityDetails[entity][field];
+			if (!buckets[field].hasOwnProperty(val)) {
+				buckets[field][val] = [];
+			}
+			buckets[field][val].push(entity);
+		});
+	});
+
+	// sort each bucket's keys
+
+	Object.keys(buckets).forEach( field => {
+		const bucket = buckets[field];
+		const vals = Object.keys(bucket).sort( compareNumbers );
+		const newBucket = {};
+		vals.forEach( val => {
+			newBucket[val] = bucket[val];
+		} );
+
+		buckets[field] = newBucket;
+	} );
+
+	// find the entities with the mostest (or the leastest)
+	const stats = {};
+
+	Object.keys(buckets).forEach( field => {
+		stats[field] = {};
+		const vals = Object.keys( buckets[field] ).sort( compareNumbers );
+		const minVal = vals[0];
+		const maxVal = vals[vals.length -1];
+		stats[field].max = {
+			val : maxVal,
+			entities : buckets[field][maxVal].sort()
+		};
+		stats[field].min = {
+			val : minVal,
+			entities : buckets[field][minVal].sort()
+		};
+	} );
+
+	return {
+		description : {
+			overall: 'Using calcChainLengthsFrom on each entity on the island to calc all their connection stats',
+			mainFields: {
+				maxChainLength: 'How many levels of indirect connections',
+				numDirectlyConnected : 'How many entities are directly connected with this one, i.e. were mentioned in the same article',
+				numIndirectlyConnected : 'How many entities are indirectly connected with this one (one level away), i.e. were never mentioned in the same article, but were mentioned in an article with someone else who in turn was directly connected',
+			},
+			maiGroupings: {
+				stats: 'The overall summary stats of the island, e.g. min/max maxChainLength, etc',
+				buckets: 'All the entities on the island grouped by each stat, e.g. maxChainLength',
+				entities: 'All the entities on the island',
+				entityDetails: 'The stats for each entity on the island',
+			}
+		},
+		stats,
+		buckets,
+		entities,
+		entityDetails,
+	};
+}
+
 function calcAllEntitiesCountsPairs() {
  return Object.keys( knownEntities )
  .map( k => { return [k, knownEntities[k]] })
@@ -1164,6 +1273,7 @@ module.exports = {
 	fetchUpdateCorrelationsEarlier,
 	knownEntities,
 	getIslandOfEntity,
+	getStatsOfIslandOfEntity,
 	calcChainBetween,
 	calcChainLengthsFrom,
 	fetchCalcChainWithArticlesBetween,
