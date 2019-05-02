@@ -941,24 +941,19 @@ function getStatsOfIslandOfEntity(rootIslandEntity){
 	const entities = Object.keys( island ).sort();
 	entities.forEach( entity => {
 		const chainLengthsFrom = calcChainLengthsFrom( entity );
-		let entityDetail = {};
-		if (chainLengthsFrom.chainLengths.length <= 1) {
-			entityDetail = {
-				maxChainLength: 0,
-				numDirectlyConnected: 0,
-				numIndirectlyConnected: 0,
-			}
-		} else {
-			entityDetail = {};
+		const entityDetail = {
+			maxChainLength: 0,
+			numDirectlyConnected: 0,
+			numIndirectlyConnected: 0,
+		};
 
+		if (chainLengthsFrom.chainLengths.length > 1) {
 			entityDetail.maxChainLength = (chainLengthsFrom.chainLengths.length -1);
 			entityDetail.numDirectlyConnected = chainLengthsFrom.chainLengths[1].entities.length;
 
 			if (chainLengthsFrom.chainLengths.length >= 3 ) {
 				entityDetail.numIndirectlyConnected = chainLengthsFrom.chainLengths[2].entities.length;
-			} else {
-				entityDetail.numIndirectlyConnected = 0;
-			}
+			} 
 		}
 
 		entityDetails[entity] = entityDetail;
