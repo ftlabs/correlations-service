@@ -80,7 +80,9 @@ app.get('/__gtg', (req, res) => {
 // these route *do* use s3o
 app.set('json spaces', 2);
 
-if (process.env.BYPASS_TOKEN !== 'true') {
+if (process.env.BYPASS_TOKEN == 'true') {
+  console.log( 'WARNING: env.BYPASS_TOKEN set to "true", so skipping s3o checks' ); 
+} else {
 	app.use(validateRequest);
 }
 
