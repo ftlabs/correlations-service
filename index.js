@@ -81,7 +81,7 @@ app.get('/__gtg', (req, res) => {
 app.set('json spaces', 2);
 
 if (process.env.BYPASS_TOKEN == 'true') {
-  console.log( 'WARNING: env.BYPASS_TOKEN set to "true", so skipping s3o checks' ); 
+  console.log( 'WARNING: env.BYPASS_TOKEN set to "true", so skipping s3o checks' );
 } else {
 	app.use(validateRequest);
 }
@@ -262,6 +262,16 @@ app.get('/islandOf/:entity', (req, res) => {
 	res.json( {
 		entity,
 		sortedIsland
+	} );
+});
+
+app.get('/statsOfIslandOf/:entity', (req, res) => {
+  const entity = req.params.entity;
+  const statsOfIslandOf = correlate.getStatsOfIslandOfEntity(req.params.entity);
+
+	res.json( {
+		entity,
+		statsOfIslandOf
 	} );
 });
 
