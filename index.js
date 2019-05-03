@@ -375,7 +375,7 @@ app.get('/v2ApiCall/', (req, res) => {
 app.get('/exhaustivelyPainfulDataConsistencyCheck', (req, res) => {
   correlate.exhaustivelyPainfulDataConsistencyCheck()
   .then( obj => {
-    console.log( `exhaustivelyPainfulDataConsistencyCheck: response json: ${JSON.stringify(obj)}`);
+    console.log( `INFO: exhaustivelyPainfulDataConsistencyCheck: response json: ${JSON.stringify(obj)}`);
     res.json( obj );
   })
   .catch( err => {
@@ -388,7 +388,7 @@ app.get('/exhaustivelyPainfulDataConsistencyCheck', (req, res) => {
 
 function startListening(){
 	app.listen(process.env.PORT, function(){
-		console.log('Server is listening on port', process.env.PORT);
+		console.log('INFO: Server is listening on port', process.env.PORT);
 	});
 }
 
@@ -397,7 +397,7 @@ function startup() {
   .then( () => {
     const startupRangeSecs = (process.env.hasOwnProperty('STARTUP_RANGE_SECS'))? parseInt(process.env.STARTUP_RANGE_SECS) : 0;
     if (startupRangeSecs > 0) {
-      console.log(`startup: startupRangeSecs=${startupRangeSecs}`);
+      console.log(`INFO: startup: startupRangeSecs=${startupRangeSecs}`);
     	return correlate.fetchUpdateCorrelationsEarlier(startupRangeSecs);
     } else {
       return { msg: 'startup: no data pre-loaded' };
@@ -415,7 +415,7 @@ function startup() {
 
 function postStartup() {
   const postStartupRangeSecs = (process.env.hasOwnProperty('POST_STARTUP_RANGE_SECS'))? parseInt(process.env.POST_STARTUP_RANGE_SECS) : 0;
-  console.log(`postStartup: postStartupRangeSecs=${postStartupRangeSecs}`);
+  console.log(`INFO: postStartup: postStartupRangeSecs=${postStartupRangeSecs}`);
   return correlate.fetchUpdateCorrelationsEarlier(postStartupRangeSecs)
   .catch( err => {
     throw new Error( `postStartup: err=${err}`);
@@ -427,9 +427,9 @@ function updateEverySoOften(count=0){
   let updateEverySecs = process.env.UPDATE_EVERY_SECS;
   let updateEveryMillis = ((updateEverySecs == '')? 0 : parseInt(updateEverySecs)) * 1000;
   if (updateEveryMillis > 0) {
-    console.log(`updateEverySoOften: next update in ${updateEverySecs} secs.`);
+    console.log(`INFO: updateEverySoOften: next update in ${updateEverySecs} secs.`);
     setTimeout(() => {
-      console.log(`updateEverySoOften: count=${count}, UPDATE_EVERY_SECS=${updateEverySecs}`);
+      console.log(`INFO: updateEverySoOften: count=${count}, UPDATE_EVERY_SECS=${updateEverySecs}`);
       correlate.fetchUpdateCorrelationsLatest()
       .then(summaryData => debug(`updateEverySoOften: fetchUpdateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
       .then( () => updateEverySoOften(count+1) )
@@ -446,7 +446,7 @@ function updateEverySoOften(count=0){
 startup()
 .then(() => postStartup()        )
 .then(() => updateEverySoOften() )
-.then(() => console.log('full startup completed.') )
+.then(() => console.log('INFO: full startup completed.') )
 .catch( err => {
   console.log(`ERROR: on startup: err=${err}`);
 })

@@ -34,6 +34,20 @@ const ignoreEntities = {
 	'topics:Audio articles' : true,
 };
 
+console.log(`INFO: ignoreEntities: default=${JSON.stringify(Object.keys(ignoreEntities))}`);
+
+// look for any entities specified in env param
+const IGNORE_ENTITIES_CSV = process.env.IGNORE_ENTITIES_CSV || '';
+
+IGNORE_ENTITIES_CSV
+.split(',')
+.map   ( entity => { return entity.trim(); } )
+.filter( entity => { return entity.match(/^[a-zA-Z]+:.+/); } )
+.map   ( entity => {
+	ignoreEntities[entity] = true;
+	console.log(`INFO: IGNORE_ENTITIES_CSV: adding entity=${entity}`);
+});
+
 const AWeekOfSecs = 604800;
 const MAX_INTERVAL_SECS = AWeekOfSecs * 2;
 debug(`startup: MAX_INTERVAL_SECS=${MAX_INTERVAL_SECS}`);
@@ -953,7 +967,7 @@ function getStatsOfIslandOfEntity(rootIslandEntity){
 
 			if (chainLengthsFrom.chainLengths.length >= 3 ) {
 				entityDetail.numIndirectlyConnected = chainLengthsFrom.chainLengths[2].entities.length;
-			} 
+			}
 		}
 
 		entityDetails[entity] = entityDetail;
