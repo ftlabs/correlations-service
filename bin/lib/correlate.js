@@ -41,8 +41,8 @@ const IGNORE_ENTITIES_CSV = process.env.IGNORE_ENTITIES_CSV || '';
 
 IGNORE_ENTITIES_CSV
 .split(',')
-.map   ( entity => { return entity.trim(); } )
-.filter( entity => { return entity.match(/^[a-zA-Z]+:.+/); } )
+.map   ( entity => entity.trim() )
+.filter( entity => entity.match(/^[a-zA-Z]+:.+/) )
 .map   ( entity => {
 	ignoreEntities[entity] = true;
 	console.log(`INFO: IGNORE_ENTITIES_CSV: adding entity=${entity}`);
