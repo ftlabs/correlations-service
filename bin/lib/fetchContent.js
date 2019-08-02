@@ -12,12 +12,12 @@ if (! CAPI_KEY ) {
 	throw new Error('ERROR: CAPI_KEY not specified in env');
 }
 
-const CAPI_PATH = 'http://api.ft.com/enrichedcontent/';
-const SAPI_PATH = 'http://api.ft.com/content/search/v1';
+const CAPI_PATH = 'https://api.ft.com/enrichedcontent/';
+const SAPI_PATH = 'https://api.ft.com/content/search/v1';
 
-const CONCORDANCES_PATH = 'http://api.ft.com/concordances';
+const CONCORDANCES_PATH = 'https://api.ft.com/concordances';
 function tmeIdToV2Url( tmeId ){
-	return `${CONCORDANCES_PATH}?identifierValue=${tmeId}&authority=http://api.ft.com/system/FT-TME&apiKey=${CAPI_KEY}`;
+	return `${CONCORDANCES_PATH}?identifierValue=${tmeId}&authority=https://api.ft.com/system/FT-TME&apiKey=${CAPI_KEY}`;
 }
 
 const V2_THINGS_API = 'https://api.ft.com/things/';
