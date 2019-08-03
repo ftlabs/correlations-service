@@ -51,8 +51,8 @@ IGNORE_ENTITIES_CSV
 	console.log(`INFO: IGNORE_ENTITIES_CSV: adding entity=${entity}`);
 });
 
-const AWeekOfSecs = 604800;
-const MAX_INTERVAL_SECS = AWeekOfSecs * 2;
+const AWeekOfSecs = 7*24*60*60;
+const MAX_INTERVAL_SECS = AWeekOfSecs * 8;
 debug(`startup: MAX_INTERVAL_SECS=${MAX_INTERVAL_SECS}`);
 
 const logbook = [];
@@ -139,7 +139,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
-	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
+	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList)}`);
 
 	const entityPromisers = entitiesList.map( entity => {
 		return function () {
@@ -409,7 +409,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
-			debug(`fetchUpdateCorrelations: num deltaEntities=${Object.keys(deltaEntities).length}, deltaEntities=${JSON.stringify(deltaEntities, null, 2)}, ignoreEntities=${JSON.stringify(Object.keys(ignoreEntities), null, 2)}`);
+			debug(`fetchUpdateCorrelations: deltaEntities.length=${Object.keys(deltaEntities).length}, ignoreEntities.length=${JSON.stringify(Object.keys(ignoreEntities).length)}`);
 
 			startFacetSearchesMillis = Date.now();
 			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities)
@@ -468,14 +468,16 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
 			const summaryData = getSummaryData();
+			const intervalCoveredSecs = (beforeSecs - afterSecs);
 			const delta = {
 				times : {
 					afterSecs,
 					afterSecsDate       : new Date(afterSecs * 1000).toISOString(),
 					beforeSecs,
 					beforeSecsDate      : new Date( beforeSecs * 1000).toISOString(),
-				  intervalCoveredSecs : (beforeSecs - afterSecs),
-					intervalCoveredHrs  : (beforeSecs - afterSecs)/3600,
+				  intervalCoveredSecs : intervalCoveredSecs,
+					intervalCoveredHrs  : intervalCoveredSecs/3600,
+					intervalCoveredDays : intervalCoveredSecs/(3600*24),
 				},
 				counts : {
 					numDeltaEntities,
@@ -902,6 +904,7 @@ function countAllCoocPairs(){
 
 function getSummaryData(){
 	const largestIslandSize = (allIslands.length == 0)? 0 : Object.keys(allIslands[0]).length;
+	const intervalCoveredSecs = latestBeforeSecs - earliestAfterSecs;
 	return {
 		ONTOLOGIES,
 		times : {
@@ -909,8 +912,9 @@ function getSummaryData(){
 			 earliestAfterDate : new Date(earliestAfterSecs * 1000).toISOString(),
 		    latestBeforeSecs,
 			  latestBeforeDate : new Date( latestBeforeSecs * 1000).toISOString(),
-		 intervalCoveredSecs : (latestBeforeSecs - earliestAfterSecs),
-			intervalCoveredHrs : (latestBeforeSecs - earliestAfterSecs)/3600,
+		 intervalCoveredSecs : intervalCoveredSecs,
+		 intervalCoveredHrs  : intervalCoveredSecs/60*60,
+		 intervalCoveredDays : intervalCoveredSecs/(60*60*24),
 		},
 		counts : {
 			knownEntities : Object.keys(knownEntities).length,
