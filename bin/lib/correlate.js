@@ -5,7 +5,10 @@ const directly     = require('./directly'); 	// trying Rhys' https://github.com/
 						// You pass 'directly' a list of fns, each of which generates a promise.
 						// The fn calls are throttled.
 
-const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
+// ONTOLOGIES overrides ONTOLOGY
+const single_ontology = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
+const ONTOLOGIES = (process.env.ONTOLOGIES)? process.env.ONTOLOGIES.split(',') : [single_ontology];
+
 const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
 const CAPI_CONCURRENCE   = (process.env.hasOwnProperty('CAPI_CONCURRENCE'  ))? process.env.CAPI_CONCURRENCE   : 4;
 
@@ -80,7 +83,7 @@ function delayedDirectly( concurrence, promisers, delayMillis=DEFAULT_DELAY_MILL
 }
 
 function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
-	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { ontology: ONTOLOGY })
+	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { ontologies: ONTOLOGIES })
 		.then( searchResponse => searchResponse.sapiObj )
 		.then( sapiObj => {
 			const deltaEntities = {};
@@ -106,7 +109,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 						return;
 					}
 
-					if (ontology !== ONTOLOGY) { return; }
+					if (!ONTOLOGIES.includes(ontology)) { return; }
 					facet.facetElements.forEach( element => {
 						if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) {
 							return; // only accept <ontology>Id names which are in UUID form
@@ -140,7 +143,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 
 	const entityPromisers = entitiesList.map( entity => {
 		return function () {
-			return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
+			return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontologies: ONTOLOGIES } )
 					.catch( err => {
 						console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
 						return;
@@ -168,7 +171,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 					entityFacets[targetEntity] = [];
 					for( let facet of sapiObj.results[0].facets ){
 						const ontology = facet.name;
-						if (ontology !== ONTOLOGY) { continue; }
+						if (!ONTOLOGIES.includes(ontology)) { continue; }
 						for( let element of facet.facetElements) {
 							if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) { continue; }
 							const entity = `${ontology}:${element.name}`;
@@ -900,7 +903,7 @@ function countAllCoocPairs(){
 function getSummaryData(){
 	const largestIslandSize = (allIslands.length == 0)? 0 : Object.keys(allIslands[0]).length;
 	return {
-		ONTOLOGY,
+		ONTOLOGIES,
 		times : {
 			 earliestAfterSecs,
 			 earliestAfterDate : new Date(earliestAfterSecs * 1000).toISOString(),
@@ -1300,7 +1303,7 @@ module.exports = {
 	calcCoocsForEntities,
 	summary     : getSummaryData,
 	logbook     : logbook,
-	ontology    : function() { return ONTOLOGY; },
+	ontologies  : function() { return ONTOLOGIES; },
 	biggestIsland : function(){ return biggestIsland; },
 	newlyAppearedEntities : function(){ return newlyAppearedEntities; },
 	exhaustivelyPainfulDataConsistencyCheck,
