@@ -113,6 +113,10 @@ function sortIsland( island ){
   }
 }
 
+function getRandomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
+
 app.get('/', (req, res) => {
   // find the biggest island
   const islands = correlate.allIslands();
@@ -123,9 +127,9 @@ app.get('/', (req, res) => {
   entities=${JSON.stringify(entities, null, 2)}`);
 
   res.render('home', {
-    ontologies : correlate.ontologies(),
+    ontologies : correlate.ontologies().join('+'),
     entity1 : entities[0],
-    entity2 : entities[entities.length -1],
+    entity2 : entities[1 + getRandomInt(entities.length -2)],
     entity1a : entities[1],
   });
 });
