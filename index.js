@@ -448,6 +448,12 @@ function updateEverySoOften(count=0){
   }
 }
 
+app.get('/calcOverlappingChains/:entities', (req, res) => {
+  const entities = req.params.entities.split(',');
+	res.json( correlate.calcOverlappingChains(entities) );
+});
+
+
 //---
 
 startup()

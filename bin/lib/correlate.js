@@ -1283,6 +1283,64 @@ function 	allEntitiesWithPrefLabels(){
 	;
 }
 
+function calcOverlappingChains( entities ){
+	if (entities.length !== 2) { // asume this for now
+		throw new Error( `calcOverlappingChains: entities.length!=2, where entities=${JSON.stringify(entities)}` );
+	}
+
+	const entity0 = entities[0];
+	const entity1 = entities[1];
+
+	const chainsByEntity = {};
+	entities.forEach( entity => {
+		const chain = calcChainLengthsFrom( entity )
+		chainsByEntity[entity] = chain;
+
+		if (chain.chainLengths.length < 3) {
+			throw new Error( `calcOverlappingChains: not enough links in chain for entity=${entity}`);
+		}
+	});
+
+	const isCooc = chainsByEntity[entity0].chainLengths[1].entities.includes(entity1);
+
+	const coocs = {
+		shared : [],
+		unshared : {}
+	}
+	const soNearlies = {
+		shared : [],
+		unshared : {}
+	}
+	entities.forEach( entity => { // prep the .unshared maps with each entity
+		coocs.unshared[entity]      = [];
+		soNearlies.unshared[entity] = [];
+	})
+
+	const entity1Coocs = chainsByEntity[entity1].chainLengths[1].entities;
+	coocs.shared = chainsByEntity[entity0].chainLengths[1].entities.filter( entity => entity1Coocs.includes( entity ) );
+	entities.forEach( entity => {
+		coocs.unshared[entity] = chainsByEntity[entity].chainLengths[1].entities.filter( coocEntity => !coocs.shared.includes( coocEntity ));
+	});
+
+	const entity1SoNearlies = chainsByEntity[entity1].chainLengths[2].entities;
+	soNearlies.shared = chainsByEntity[entity0].chainLengths[2].entities.filter( entity => entity1SoNearlies.includes(entity) );
+	entities.forEach( entity => {
+		soNearlies.unshared[entity] = chainsByEntity[entity].chainLengths[2].entities.filter( snEntity => !soNearlies.shared.includes(snEntity) && snEntity !== entity0 && snEntity !== entity1 );
+	});
+
+	const overlaps = {
+		isCooc,
+		coocs,
+		soNearlies,
+	}
+
+	return {
+		description: 'comparing the chains of correlations from each entity: checking if they in fact cooccur directly, and looking for chared cooccurrences, and looking for shared soNearlies',
+		entities,
+		overlaps,
+		chainsByEntity
+	}
+}
 
 module.exports = {
 	fetchUpdateCorrelationsLatest,
@@ -1311,4 +1369,5 @@ module.exports = {
 	biggestIsland : function(){ return biggestIsland; },
 	newlyAppearedEntities : function(){ return newlyAppearedEntities; },
 	exhaustivelyPainfulDataConsistencyCheck,
+	calcOverlappingChains,
 };
