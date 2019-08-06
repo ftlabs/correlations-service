@@ -79,6 +79,7 @@ function constructSAPIQuery( params ) {
 		    aspects : [ "title",  "lifecycle", "images"], // [ "title", "location", "summary", "lifecycle", "metadata"],
 		constraints : [],
 		   ontology : "people",
+			 // ontologies : ["people", "organisations"]
 	};
 
 	const combined = Object.assign({}, defaults, params);
@@ -96,12 +97,19 @@ function constructSAPIQuery( params ) {
 
 	// for whichever ontology we pick,
 	// make sure we have the with and without Id variations for the facets.
-	const facets = ['authors', combined.ontology]; // hack!! always include the authors ontology first
-	if (combined.ontology.match(/Id$/)) {
-		facets.push( combined.ontology.replace(/Id$/, ''));
-	} else {
-		facets.push( combined.ontology + 'Id' );
-	}
+	// NB: ontologies overrides ontology.
+
+	const ontologies = (combined.ontologies)? combined.ontologies : [combined.ontology];
+	const facets = ['authors']; // hack!! always include the authors ontology first
+
+	ontologies.forEach( ontology => {
+		facets.push( ontology );
+		if (ontology.match(/Id$/)) {
+			facets.push( ontology.replace(/Id$/, ''));
+		} else {
+			facets.push( ontology + 'Id' );
+		}
+	})
 
 	const full = {
   	"queryString": queryString,

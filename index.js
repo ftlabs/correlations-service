@@ -38,17 +38,18 @@ app.get('/dummy', (req, res) => {
 function healthCheck1() {
   const summary          = correlate.summary()
   const summaryOfFetches = fetchContent.summariseFetchTimings();
-  const ontology = correlate.ontology();
+  const ontologies = correlate.ontologies();
+  const ontologiesString = ontologies.join(', ');
 
   return {
     id               : 1,
-    name             : `check largest island exists and contains more than 1 ${ontology}`,
+    name             : `check largest island exists and contains more than 1 of ${ontologiesString}`,
     ok               : ( summary.hasOwnProperty('counts')
                       && summary.counts.hasOwnProperty('largestIslandSize')
                       && summary.counts.largestIslandSize > 1 ),
     severity         : 1,
     businessImpact   : 'the FT Labs Google Home game, Make Connections, will be failing',
-    technicalSummary : `Checks if the islands data structure has been properly populated with groups of correlated ${ontology}`,
+    technicalSummary : `Checks if the islands data structure has been properly populated with groups of correlated ${ontologiesString}`,
     panicGuide       : 'check the logs and /summaryOfFetches',
     checkOutput      : { summaryOfFetches },
     lastUpdated      : (summary && summary.times)? summary.times.intervalCoveredHrs : 'unknown',
@@ -56,12 +57,14 @@ function healthCheck1() {
 }
 
 app.get('/__health', (req, res) => {
-  const ontology = correlate.ontology();
+  const ontologies = correlate.ontologies();
+  const label = ontologies.join('-');
+
   const stdResponse = {
     schemaVersion : 1,
-    systemCode    : `ftlabs-correlations-${ontology}`,
-    name          : `FT Labs Correlations ${ontology}`,
-    description   : `uses SAPI+CAPI to build graph of correlations of ${ontology} mentioned in article metadata`,
+    systemCode    : `ftlabs-correlations-${label}`,
+    name          : `FT Labs Correlations ${label}`,
+    description   : `uses SAPI+CAPI to build graph of correlations of ${ontologies.join('+')} mentioned in article metadata`,
     checks        : [],
   };
 
@@ -110,6 +113,10 @@ function sortIsland( island ){
   }
 }
 
+function getRandomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
+
 app.get('/', (req, res) => {
   // find the biggest island
   const islands = correlate.allIslands();
@@ -120,9 +127,9 @@ app.get('/', (req, res) => {
   entities=${JSON.stringify(entities, null, 2)}`);
 
   res.render('home', {
-    ontology : correlate.ontology(),
+    ontologies : correlate.ontologies().join('+'),
     entity1 : entities[0],
-    entity2 : entities[entities.length -1],
+    entity2 : entities[1 + getRandomInt(entities.length -2)],
     entity1a : entities[1],
   });
 });

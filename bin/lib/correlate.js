@@ -5,7 +5,10 @@ const directly     = require('./directly'); 	// trying Rhys' https://github.com/
 						// You pass 'directly' a list of fns, each of which generates a promise.
 						// The fn calls are throttled.
 
-const ONTOLOGY = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
+// ONTOLOGIES overrides ONTOLOGY
+const single_ontology = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
+const ONTOLOGIES = (process.env.ONTOLOGIES)? process.env.ONTOLOGIES.split(',') : [single_ontology];
+
 const FACETS_CONCURRENCE = (process.env.hasOwnProperty('FACETS_CONCURRENCE'))? process.env.FACETS_CONCURRENCE : 4;
 const CAPI_CONCURRENCE   = (process.env.hasOwnProperty('CAPI_CONCURRENCE'  ))? process.env.CAPI_CONCURRENCE   : 4;
 
@@ -48,8 +51,8 @@ IGNORE_ENTITIES_CSV
 	console.log(`INFO: IGNORE_ENTITIES_CSV: adding entity=${entity}`);
 });
 
-const AWeekOfSecs = 604800;
-const MAX_INTERVAL_SECS = AWeekOfSecs * 2;
+const AWeekOfSecs = 7*24*60*60;
+const MAX_INTERVAL_SECS = AWeekOfSecs * 8;
 debug(`startup: MAX_INTERVAL_SECS=${MAX_INTERVAL_SECS}`);
 
 const logbook = [];
@@ -80,7 +83,7 @@ function delayedDirectly( concurrence, promisers, delayMillis=DEFAULT_DELAY_MILL
 }
 
 function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
-	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { ontology: ONTOLOGY })
+	return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { ontologies: ONTOLOGIES })
 		.then( searchResponse => searchResponse.sapiObj )
 		.then( sapiObj => {
 			const deltaEntities = {};
@@ -106,7 +109,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 						return;
 					}
 
-					if (ontology !== ONTOLOGY) { return; }
+					if (!ONTOLOGIES.includes(ontology)) { return; }
 					facet.facetElements.forEach( element => {
 						if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) {
 							return; // only accept <ontology>Id names which are in UUID form
@@ -136,11 +139,11 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
-	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList, null, 2)}`);
+	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList)}`);
 
 	const entityPromisers = entitiesList.map( entity => {
 		return function () {
-			return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontology: ONTOLOGY } )
+			return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontologies: ONTOLOGIES } )
 					.catch( err => {
 						console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
 						return;
@@ -168,7 +171,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 					entityFacets[targetEntity] = [];
 					for( let facet of sapiObj.results[0].facets ){
 						const ontology = facet.name;
-						if (ontology !== ONTOLOGY) { continue; }
+						if (!ONTOLOGIES.includes(ontology)) { continue; }
 						for( let element of facet.facetElements) {
 							if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) { continue; }
 							const entity = `${ontology}:${element.name}`;
@@ -406,7 +409,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
-			debug(`fetchUpdateCorrelations: num deltaEntities=${Object.keys(deltaEntities).length}, deltaEntities=${JSON.stringify(deltaEntities, null, 2)}, ignoreEntities=${JSON.stringify(Object.keys(ignoreEntities), null, 2)}`);
+			debug(`fetchUpdateCorrelations: deltaEntities.length=${Object.keys(deltaEntities).length}, ignoreEntities.length=${JSON.stringify(Object.keys(ignoreEntities).length)}`);
 
 			startFacetSearchesMillis = Date.now();
 			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities)
@@ -465,14 +468,16 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
 			const summaryData = getSummaryData();
+			const intervalCoveredSecs = (beforeSecs - afterSecs);
 			const delta = {
 				times : {
 					afterSecs,
 					afterSecsDate       : new Date(afterSecs * 1000).toISOString(),
 					beforeSecs,
 					beforeSecsDate      : new Date( beforeSecs * 1000).toISOString(),
-				  intervalCoveredSecs : (beforeSecs - afterSecs),
-					intervalCoveredHrs  : (beforeSecs - afterSecs)/3600,
+				  intervalCoveredSecs : intervalCoveredSecs,
+					intervalCoveredHrs  : intervalCoveredSecs/3600,
+					intervalCoveredDays : intervalCoveredSecs/(3600*24),
 				},
 				counts : {
 					numDeltaEntities,
@@ -899,15 +904,17 @@ function countAllCoocPairs(){
 
 function getSummaryData(){
 	const largestIslandSize = (allIslands.length == 0)? 0 : Object.keys(allIslands[0]).length;
+	const intervalCoveredSecs = latestBeforeSecs - earliestAfterSecs;
 	return {
-		ONTOLOGY,
+		ONTOLOGIES,
 		times : {
 			 earliestAfterSecs,
 			 earliestAfterDate : new Date(earliestAfterSecs * 1000).toISOString(),
 		    latestBeforeSecs,
 			  latestBeforeDate : new Date( latestBeforeSecs * 1000).toISOString(),
-		 intervalCoveredSecs : (latestBeforeSecs - earliestAfterSecs),
-			intervalCoveredHrs : (latestBeforeSecs - earliestAfterSecs)/3600,
+		 intervalCoveredSecs : intervalCoveredSecs,
+		 intervalCoveredHrs  : intervalCoveredSecs/60*60,
+		 intervalCoveredDays : intervalCoveredSecs/(60*60*24),
 		},
 		counts : {
 			knownEntities : Object.keys(knownEntities).length,
@@ -1300,7 +1307,7 @@ module.exports = {
 	calcCoocsForEntities,
 	summary     : getSummaryData,
 	logbook     : logbook,
-	ontology    : function() { return ONTOLOGY; },
+	ontologies  : function() { return ONTOLOGIES; },
 	biggestIsland : function(){ return biggestIsland; },
 	newlyAppearedEntities : function(){ return newlyAppearedEntities; },
 	exhaustivelyPainfulDataConsistencyCheck,

@@ -1,11 +1,13 @@
-<h1>FTLabs: exploring correlations between {{ontology}} named in articles</h1>
+<h1>FTLabs: exploring correlations between {{ontologies}} named in articles</h1>
 
-<p>Based on Slurp, an app written 2 years ago to explore all correlations of entities named in FT articles
+<p>Based on Slurp, an app written a few years ago to explore all correlations of entities named in FT articles
   (which drove <a href="https://labs.ft.com/2015/07/six-degrees-of-angela-merkel/">Six Degrees of Angela Merkel</a>)
-  this app (codenamed 'Lick', aka Slurp-lite) looks at correlations of just the {{ontology}} named in articles,
-  particularly to support the Merkel Chain idea from the original project (when the ontology is people). It is a full rewrite (in Node) from the original (in Ruby + S3 buckets).</p>
+  this app looks at correlations of just the {{ontologies}} named in articles,
+  to support the Merkel Chain idea from the original project (when the ontologies was solely people),
+  but also to explore other possibilities for deriving useful info from the article taggings.
+  It is a full rewrite (in Node) from the original (in Ruby + S3 buckets).</p>
 
-<p>Two {{ontology}} entities are 'correlated' if they are both named metadata entities in the same FT article.</p>
+<p>Two {{ontologies}} entities are 'correlated' if they are both named metadata entities in the same FT article.</p>
 
 <p>Using the idea of 'six degrees of Kevin Bacon', with films replaced by FT articles,
   we can connect entities together or create a measure of the 'distance' between them.
@@ -24,32 +26,32 @@
   <ul>
     <li>e.g., <a href="/statsOfIslandOf/{{entity1}}" />stats of everyone on {{entity1}}'s island</a></li>
   </ul>
-  <li>/calcChainBetween/:entity1/:entity2</li>
+  <li>/calcChainBetween/:entity1/:entity2 (the full Kevin Bacon)</li>
   <ul>
     <li>e.g., <a href="/calcChainBetween/{{entity1}}/{{entity2}}" />chain between {{entity1}} and {{entity2}}</a></li>
   </ul>
-  <li>/calcChainWithArticlesBetween/:entity1/:entity2</li>
+  <li>/calcChainWithArticlesBetween/:entity1/:entity2 (the full Kevin Bacon, with added evidence)</li>
   <ul>
     <li>e.g., <a href="/calcChainWithArticlesBetween/{{entity1}}/{{entity2}}" />chain between {{entity1}} and {{entity2}}, including the articles where each link pair co-occurs</a></li>
   </ul>
-  <li>/calcChainLengthsFrom/:entity</li>
+  <li>/calcChainLengthsFrom/:entity (imagine picking the graph up by holding that entity, and everything dangles below)</li>
   <ul>
     <li>e.g., <a href="/calcChainLengthsFrom/{{entity1}}" />how far is every other entity (on the same island) from {{entity1}}</a></li>
     <li>e.g., <a href="/calcChainLengthsFrom/{{entity2}}" />how far is every other entity (on the same island) from {{entity2}}</a></li>
   </ul>
-  <li>/calcSoNearliesOnMainIsland</li>
+  <li>/calcSoNearliesOnMainIsland (A 'so-nearly' is one you never directly co-occur with, but does co-occur with other entities you co-occur with. Sort of one step removed. So-nearly a connection, but not quite.)</li>
   <ul>
     <li><a href="/calcSoNearliesOnMainIsland" />which pairs never meet, but have the biggest overlap of coocs?</a></li>
     <li><a href="/soNearliesOnMainIslandByEntity" />which pairs never meet, but have the biggest overlap of coocs? (grouped by entity)</a></li>
     <li><a href="/calcMostBetweenSoNearliesOnMainIsland" />which entities appear most often in the soNearlies intersections?</a></li>
     <li><a href="/calcMostBetweenSoNearliesOnMainIsland/1" />which entities appear most often in the soNearlies intersections (increasing prominence of small intersection sets)?</a></li>
   </ul>
-  <li>/calcSoNearliesForEntities</li>
+  <li>/calcSoNearliesForEntities (Hypothesis: if two entities never co-occur, but they do share some so-nearlies, that might suggest some virtual connections.)</li>
   <ul>
     <li><a href="/calcSoNearliesForEntities/{{entity1a}}" />who are the soNearlies for just {{entity1a}}</a></li>
     <li><a href="/calcSoNearliesForEntities/{{entity1}},{{entity1a}}?max=10" />who are the soNearlies for {{entity1}} and {{entity1a}}</a></li>
   </ul>
-  <li>/calcCoocsForEntities</li>
+  <li>/calcCoocsForEntities (cooc = co-occur. If two entities never meet (i.e. co-occur), but they share some entities they co-occur with, that's a string connection.)</li>
   <ul>
     <li><a href="/calcCoocsForEntities/{{entity1a}}" />who are the coocs for just {{entity1a}}</a></li>
     <li><a href="/calcCoocsForEntities/{{entity1}},{{entity1a}}?max=10" />who are the coocs for {{entity1}} and {{entity1a}}</a></li>
