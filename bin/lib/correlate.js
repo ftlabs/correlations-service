@@ -1327,6 +1327,16 @@ function calcOverlappingChains( entities ){
 	entities.forEach( entity => {
 		soNearlies.unshared[entity] = chainsByEntity[entity].chainLengths[2].entities.filter( snEntity => !soNearlies.shared.includes(snEntity) && snEntity !== entity0 && snEntity !== entity1 );
 	});
+	// more detailed look at soNearlies: did they come from coocs.shared or not?
+	const allCorrelationsOfCoocsShared = {};
+	coocs.shared.forEach( entity => {
+		const correlations = Object.keys( allCoocs[entity] );
+		correlations.forEach( corrEntity => {
+			allCorrelationsOfCoocsShared[corrEntity] = true;
+		})
+	});
+	soNearlies.sharedBySharedCoocs = soNearlies.shared.filter( entity => allCorrelationsOfCoocsShared[entity] );
+	soNearlies.sharedByUnsharedCoocs = soNearlies.shared.filter( entity => !allCorrelationsOfCoocsShared[entity] );
 
 	const overlaps = {
 		isCooc,
