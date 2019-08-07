@@ -54,6 +54,7 @@ IGNORE_ENTITIES_CSV
 const AWeekOfSecs = 7*24*60*60;
 const MAX_INTERVAL_SECS = AWeekOfSecs * 8;
 debug(`startup: MAX_INTERVAL_SECS=${MAX_INTERVAL_SECS}`);
+const DEFAULT_EARLIER_INTERVAL = AWeekOfSecs;
 
 const logbook = [];
 function logItem( location, obj ){
@@ -521,14 +522,18 @@ function fetchUpdateCorrelationsLatest() {
 	return fetchUpdateCorrelations(afterSecs, beforeSecs);
 }
 
-function fetchUpdateCorrelationsEarlier(intervalSecs=0) {
+function fetchUpdateCorrelationsEarlier(intervalSecs=0, force=false) {
 	if (typeof intervalSecs == 'string') {
 		intervalSecs = parseInt(intervalSecs);
 	} else if (typeof intervalSecs != 'number') {
 		throw new Error(`fetchUpdateCorrelationsEarlier: could not handle intervalSecs`);
 	}
 
-	if (intervalSecs > MAX_INTERVAL_SECS || intervalSecs < 0) {
+	if ( intervalSecs < 0 ) {
+		intervalSecs = DEFAULT_EARLIER_INTERVAL;
+	}
+
+	if( intervalSecs > MAX_INTERVAL_SECS & !force ) {
 		intervalSecs = MAX_INTERVAL_SECS;
 	}
 
