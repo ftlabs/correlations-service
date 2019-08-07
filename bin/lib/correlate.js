@@ -142,47 +142,55 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
 	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList)}`);
 
+	const entityFacets = {}; // to be populated from within each search promise
+
 	const entityPromisers = entitiesList.map( entity => {
 		return function () {
 			return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontologies: ONTOLOGIES } )
-					.catch( err => {
-						console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
-						return;
-					})
-					;
-		};
-	});
+			.then( searchResponse => {
+				const sapiObj = searchResponse.sapiObj;
 
-	return delayedDirectly(FACETS_CONCURRENCE, entityPromisers, FACETS_DELAY_MILLIS)
-		.then( searchResponses => {
-			const entityFacets = {};
-			for( let searchResponse of searchResponses ){
-				const targetEntity = searchResponse.params.constraints[0];
-				const      sapiObj = searchResponse.sapiObj;
-
+				let numEntitiesFoundPerFacet = 0;
 				if (! sapiObj ) {
-					debug('getAllEntityFacets: no sapiObj');
+					debug(`getAllEntityFacets: no sapiObj, entity=${entity}`);
 				} else if (! sapiObj.results ) {
-					debug('getAllEntityFacets: no results');
+					debug(`getAllEntityFacets: no results, entity=${entity}`);
 				} else if( ! sapiObj.results[0] ) {
-					debug('getAllEntityFacets: no results[0]');
+					debug(`getAllEntityFacets: no results[0], entity=${entity}`);
 				} else if( ! sapiObj.results[0].facets ) {
-					debug('getAllEntityFacets: no results[0].facets');
+					debug(`getAllEntityFacets: no results[0].facets`);
 				} else {
-					entityFacets[targetEntity] = [];
+					entityFacets[entity] = [];
 					for( let facet of sapiObj.results[0].facets ){
 						const ontology = facet.name;
 						if (!ONTOLOGIES.includes(ontology)) { continue; }
 						for( let element of facet.facetElements) {
 							if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) { continue; }
-							const entity = `${ontology}:${element.name}`;
-							if( entity == targetEntity ) { continue; }
-							if( ignoreEntities[entity] ) { continue; }
-							entityFacets[targetEntity].push(entity);
+							const facetEntity = `${ontology}:${element.name}`;
+							if( entity == facetEntity ) { continue; }
+							if( ignoreEntities[facetEntity] ) { continue; }
+							entityFacets[entity].push(facetEntity);
 						}
 					}
+					numEntitiesFoundPerFacet = entityFacets[entity].length;
 				}
-			}
+
+				return {
+					numEntitiesFoundPerFacet
+				}
+			})
+			.catch( err => {
+				console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+				return;
+			})
+			;
+		};
+	});
+
+	return delayedDirectly(FACETS_CONCURRENCE, entityPromisers, FACETS_DELAY_MILLIS)
+		.then( searchesDetails => {
+			const counts = searchesDetails.map( sd => sd.numEntitiesFoundPerFacet );
+			debug( `getAllEntityFacets: numFacets=${searchesDetails.length}, counts=${JSON.stringify(counts)}`);
 			return {
 				entities,
 				entityFacets,
