@@ -420,9 +420,17 @@ function startup() {
   ;
 }
 
+const MAX_POSTSTARTUP_ITERATIONS = (process.env.MAX_POSTSTARTUP_ITERATIONS)? process.env.MAX_POSTSTARTUP_ITERATIONS : 1; // assume we *always* do at least one
+let numPostStartupIterations = 0;
+
 function postStartup() {
+  if (numPostStartupIterations >= MAX_POSTSTARTUP_ITERATIONS) {
+    return Promise.resolve(); // return a promise
+  } else {
+    numPostStartupIterations++;
+  }
   const postStartupRangeSecs = (process.env.hasOwnProperty('POST_STARTUP_RANGE_SECS'))? parseInt(process.env.POST_STARTUP_RANGE_SECS) : 0;
-  console.log(`INFO: postStartup: postStartupRangeSecs=${postStartupRangeSecs}`);
+  console.log(`INFO: postStartup: postStartupRangeSecs=${postStartupRangeSecs}, iteration=${numPostStartupIterations} of ${MAX_POSTSTARTUP_ITERATIONS}`);
   let force=true;
   return correlate.fetchUpdateCorrelationsEarlier(postStartupRangeSecs, force)
   .catch( err => {
@@ -438,7 +446,8 @@ function updateEverySoOften(count=0){
     console.log(`INFO: updateEverySoOften: next update in ${updateEverySecs} secs.`);
     setTimeout(() => {
       console.log(`INFO: updateEverySoOften: count=${count}, UPDATE_EVERY_SECS=${updateEverySecs}`);
-      correlate.fetchUpdateCorrelationsLatest()
+      postStartup()
+      .then( () => correlate.fetchUpdateCorrelationsLatest() )
       .then(summaryData => debug(`updateEverySoOften: fetchUpdateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
       .then( () => updateEverySoOften(count+1) )
       .catch( err => {
