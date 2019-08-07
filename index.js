@@ -421,20 +421,25 @@ function startup() {
 }
 
 const MAX_POSTSTARTUP_ITERATIONS = (process.env.MAX_POSTSTARTUP_ITERATIONS)? process.env.MAX_POSTSTARTUP_ITERATIONS : 1; // assume we *always* do at least one
-let numPostStartupIterations = 0;
 
-function postStartup() {
-  if (numPostStartupIterations >= MAX_POSTSTARTUP_ITERATIONS) {
+function postStartup(iterationsRemaining=MAX_POSTSTARTUP_ITERATIONS) {
+  if (iterationsRemaining <= 0) {
     return Promise.resolve(); // return a promise
-  } else {
-    numPostStartupIterations++;
   }
   const postStartupRangeSecs = (process.env.hasOwnProperty('POST_STARTUP_RANGE_SECS'))? parseInt(process.env.POST_STARTUP_RANGE_SECS) : 0;
-  console.log(`INFO: postStartup: postStartupRangeSecs=${postStartupRangeSecs}, iteration=${numPostStartupIterations} of ${MAX_POSTSTARTUP_ITERATIONS}`);
+  console.log(`INFO: postStartup: postStartupRangeSecs=${postStartupRangeSecs}, iterationsRemaining=${iterationsRemaining}`);
   let force=true;
   return correlate.fetchUpdateCorrelationsEarlier(postStartupRangeSecs, force)
+  .then(summaryData => debug(`postStartup: iterationsRemaining=${iterationsRemaining}, summaryData=${JSON.stringify(summaryData)}`) )
+  .then( () => {
+    if( iterationsRemaining > 0 ){
+      return postStartup( iterationsRemaining -1 );
+    } else {
+      return Promise.resolve();
+    }
+  })
   .catch( err => {
-    throw new Error( `postStartup: err=${err}`);
+    throw new Error( `postStartup: iterationsRemaining=${iterationsRemaining}, err=${err}`);
   })
   ;
 }
@@ -446,8 +451,7 @@ function updateEverySoOften(count=0){
     console.log(`INFO: updateEverySoOften: next update in ${updateEverySecs} secs.`);
     setTimeout(() => {
       console.log(`INFO: updateEverySoOften: count=${count}, UPDATE_EVERY_SECS=${updateEverySecs}`);
-      postStartup()
-      .then( () => correlate.fetchUpdateCorrelationsLatest() )
+      return correlate.fetchUpdateCorrelationsLatest()
       .then(summaryData => debug(`updateEverySoOften: fetchUpdateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
       .then( () => updateEverySoOften(count+1) )
       .catch( err => {
