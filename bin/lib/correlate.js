@@ -1320,27 +1320,27 @@ function calcOverlappingChains( entities ){
 		chainsByEntity[entity].chainLengths[1].entities.forEach( friend => { allKnownFriends[friend] = true; })
 	})
 
-	const entity1Coocs = chainsByEntity[entity1].chainLengths[1].entities;
-	friends.shared = chainsByEntity[entity0].chainLengths[1].entities.filter( entity => entity1Coocs.includes( entity ) );
+	const entity1Friends = chainsByEntity[entity1].chainLengths[1].entities;
+	friends.shared = chainsByEntity[entity0].chainLengths[1].entities.filter( friend => entity1Friends.includes( friend ) );
 	entities.forEach( entity => {
-		friends.unshared[entity] = chainsByEntity[entity].chainLengths[1].entities.filter( coocEntity => !friends.shared.includes( coocEntity ) && !entities.includes(coocEntity));
+		friends.unshared[entity] = chainsByEntity[entity].chainLengths[1].entities.filter( friend => !friends.shared.includes( friend ) && !entities.includes(friend));
 	});
 
-	const entity1SoNearlies = chainsByEntity[entity1].chainLengths[2].entities;
-	friendsOfFriends.shared = chainsByEntity[entity0].chainLengths[2].entities.filter( entity => entity1SoNearlies.includes(entity) && !allKnownFriends[entity] );
+	const entity1FriendsOfFriends = chainsByEntity[entity1].chainLengths[2].entities;
+	friendsOfFriends.shared = chainsByEntity[entity0].chainLengths[2].entities.filter( fof => entity1FriendsOfFriends.includes(fof) && !allKnownFriends[fof] );
 	entities.forEach( entity => {
-		friendsOfFriends.unshared[entity] = chainsByEntity[entity].chainLengths[2].entities.filter( snEntity => !friendsOfFriends.shared.includes(snEntity) && !entities.includes(snEntity) && !allKnownFriends[snEntity] );
+		friendsOfFriends.unshared[entity] = chainsByEntity[entity].chainLengths[2].entities.filter( fof => !friendsOfFriends.shared.includes(fof) && !entities.includes(fof) && !allKnownFriends[fof] );
 	});
 	// more detailed look at soNearlies: did they come from friends.shared or not?
 	const allCorrelationsOfCoocsShared = {};
-	friends.shared.forEach( entity => {
-		const correlations = Object.keys( allCoocs[entity] );
-		correlations.forEach( corrEntity => {
-			allCorrelationsOfCoocsShared[corrEntity] = true;
+	friends.shared.forEach( friend => {
+		const correlations = Object.keys( allCoocs[friend] );
+		correlations.forEach( fof => {
+			allCorrelationsOfCoocsShared[fof] = true;
 		})
 	});
-	friendsOfFriends.sharedViaSharedFriends   = friendsOfFriends.shared.filter( entity => allCorrelationsOfCoocsShared[entity] );
-	friendsOfFriends.sharedViaUnsharedFriends = friendsOfFriends.shared.filter( entity => !allCorrelationsOfCoocsShared[entity] );
+	friendsOfFriends.sharedViaSharedFriends   = friendsOfFriends.shared.filter( fof => allCorrelationsOfCoocsShared[fof] );
+	friendsOfFriends.sharedViaUnsharedFriends = friendsOfFriends.shared.filter( fof => !allCorrelationsOfCoocsShared[fof] );
 
 	const overlaps = {
 		areAlreadyFriends,
