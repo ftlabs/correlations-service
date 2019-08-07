@@ -1304,28 +1304,32 @@ function calcOverlappingChains( entities ){
 	const areAlreadyFriends = chainsByEntity[entity0].chainLengths[1].entities.includes(entity1);
 
 	const friends = {
+		NB : 'filtering out the initial entities from the friends lists',
 		shared : [],
 		unshared : {}
 	}
 	const friendsOfFriends = {
+		NB : 'filtering out the initial entities and friends from the friendsOfFriends lists',
 		shared : [],
 		unshared : {}
 	}
+	const allKnownFriends = {};
 	entities.forEach( entity => { // prep the .unshared maps with each entity
 		friends.unshared[entity]      = [];
 		friendsOfFriends.unshared[entity] = [];
+		chainsByEntity[entity].chainLengths[1].entities.forEach( friend => { allKnownFriends[friend] = true; })
 	})
 
 	const entity1Coocs = chainsByEntity[entity1].chainLengths[1].entities;
 	friends.shared = chainsByEntity[entity0].chainLengths[1].entities.filter( entity => entity1Coocs.includes( entity ) );
 	entities.forEach( entity => {
-		friends.unshared[entity] = chainsByEntity[entity].chainLengths[1].entities.filter( coocEntity => !friends.shared.includes( coocEntity ));
+		friends.unshared[entity] = chainsByEntity[entity].chainLengths[1].entities.filter( coocEntity => !friends.shared.includes( coocEntity ) && !entities.includes(coocEntity));
 	});
 
 	const entity1SoNearlies = chainsByEntity[entity1].chainLengths[2].entities;
-	friendsOfFriends.shared = chainsByEntity[entity0].chainLengths[2].entities.filter( entity => entity1SoNearlies.includes(entity) );
+	friendsOfFriends.shared = chainsByEntity[entity0].chainLengths[2].entities.filter( entity => entity1SoNearlies.includes(entity) && !allKnownFriends[entity] );
 	entities.forEach( entity => {
-		friendsOfFriends.unshared[entity] = chainsByEntity[entity].chainLengths[2].entities.filter( snEntity => !friendsOfFriends.shared.includes(snEntity) && snEntity !== entity0 && snEntity !== entity1 );
+		friendsOfFriends.unshared[entity] = chainsByEntity[entity].chainLengths[2].entities.filter( snEntity => !friendsOfFriends.shared.includes(snEntity) && !entities.includes(snEntity) && !allKnownFriends[snEntity] );
 	});
 	// more detailed look at soNearlies: did they come from friends.shared or not?
 	const allCorrelationsOfCoocsShared = {};
