@@ -448,6 +448,20 @@ function updateEverySoOften(count=0){
   }
 }
 
+app.get('/calcOverlappingChains/:entities', (req, res) => {
+  const entities = req.params.entities.split(',');
+  try {
+	   res.json( correlate.calcOverlappingChains(entities) );
+   }
+   catch( err ){
+     res.json( {
+       calling: '/calcOverlappingChains',
+       err : err.message,
+     });
+   }
+});
+
+
 //---
 
 startup()
