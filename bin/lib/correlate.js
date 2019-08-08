@@ -476,15 +476,21 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			startPostProcessingMillis = Date.now();
 			// post-processing: re-calc all the islands, and link entities to them
 			allIslands         = findIslands(allCoocs);
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after findIslands`, memBefore);
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after linkKnownEntitiesToAllIslands`, memBefore);
 			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandImpl`, memBefore);
 			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandByEntity`, memBefore);
 			biggestIsland = calcIslandSortedByCount( (allIslands.length > 0)? allIslands[0] : [] );
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcIslandSortedByCount`, memBefore);
 
 			endPostProcessingMillis = Date.now();
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
 			const summaryData = getSummaryData();
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after getSummaryData`, memBefore);
 			const intervalCoveredSecs = (beforeSecs - afterSecs);
 			const delta = {
 				times : {
