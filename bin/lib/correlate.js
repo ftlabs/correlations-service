@@ -147,7 +147,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entityPromisers = entitiesList.map( entity => {
 		return function () {
 			return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontologies: ONTOLOGIES } )
-			.then( searchResponse => {
+			.then( function( searchResponse ){
 				const sapiObj = searchResponse.sapiObj;
 
 				let numEntitiesFoundPerFacet = 0;
@@ -179,7 +179,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 					numEntitiesFoundPerFacet
 				}
 			})
-			.catch( err => {
+			.catch( function( err ){
 				console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
 				return;
 			})
@@ -188,7 +188,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	});
 
 	return delayedDirectly(FACETS_CONCURRENCE, entityPromisers, FACETS_DELAY_MILLIS)
-		.then( searchesDetails => {
+		.then( function(searchesDetails) {
 			const counts = searchesDetails.map( sd => sd.numEntitiesFoundPerFacet );
 			debug( `getAllEntityFacets: numFacets=${searchesDetails.length}, counts=${JSON.stringify(counts)}`);
 			return {

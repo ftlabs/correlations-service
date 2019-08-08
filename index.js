@@ -420,12 +420,24 @@ function startup() {
   ;
 }
 
+// function forceGC() {
+//   try {
+//     if (global.gc) {global.gc();}
+//   } catch (e) {
+//     console.log("cannot request gc unless `node --expose-gc index.js`");
+//     process.exit();
+//   }
+// }
+
 const MAX_POSTSTARTUP_ITERATIONS = (process.env.MAX_POSTSTARTUP_ITERATIONS)? process.env.MAX_POSTSTARTUP_ITERATIONS : 1; // assume we *always* do at least one
 
 function postStartup(iterationsRemaining=MAX_POSTSTARTUP_ITERATIONS) {
   if (iterationsRemaining <= 0) {
     return Promise.resolve(); // return a promise
   }
+
+  // forceGC(); // just desparate at this stage
+
   const postStartupRangeSecs = (process.env.hasOwnProperty('POST_STARTUP_RANGE_SECS'))? parseInt(process.env.POST_STARTUP_RANGE_SECS) : 0;
   console.log(`INFO: postStartup: postStartupRangeSecs=${postStartupRangeSecs}, iterationsRemaining=${iterationsRemaining}`);
   let force=true;
