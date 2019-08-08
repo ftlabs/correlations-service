@@ -20,7 +20,7 @@ function areBeyondCompare( prevUsage ){
 const IGNORE_USAGE_KEYS = ['prevUsage', 'latestUsage'];
 
 function log( context='memoryUsage', usage=areMadeOfThis() ){
-	const lines = [`${context} :`];
+	const lines = [`${context} : memoryUsage`];
 	const keys = Object.keys(usage).filter( key => !IGNORE_USAGE_KEYS.includes(key) );
 	lines.push( keys.join( ", \t") );
 	lines.push( keys.map( key => `${Math.round(usage[key] / 1024 / 1024 * 100) / 100} MB` ).join( ", \t") );
@@ -39,7 +39,7 @@ function areBeyondCompareAndLog( context, prevUsage ){
 }
 
 function logSnapshotAndFlush(){
-	console.log( `memories snapshot:\n ${snapshotLines.join("\n")}`);
+	console.log( `memories snapshot:\n ${snapshotLines.join("\n")}\n    eof snapshot.`);
 	snapshotLines.length = 0;
 }
 

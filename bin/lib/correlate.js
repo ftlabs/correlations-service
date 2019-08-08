@@ -523,6 +523,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after flushAllCaches`, memBefore);
 			memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after everything, for whole process`, initialMem );
 			memories.logSnapshotAndFlush();
+			memories.log( 'fetchUpdateCorrelations: absolute memory info', memories.areMadeOfThis() );
 			return summaryData;
 		})
 		.catch( err => {
