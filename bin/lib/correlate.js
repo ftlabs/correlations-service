@@ -4,6 +4,7 @@ const v1v2         = require('./v1v2'); // obtain all the CAPI v1 and v2 variant
 const directly     = require('./directly'); 	// trying Rhys' https://github.com/wheresrhys/directly.
 						// You pass 'directly' a list of fns, each of which generates a promise.
 						// The fn calls are throttled.
+const memories = require('./memories');
 
 // ONTOLOGIES overrides ONTOLOGY
 const single_ontology = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
@@ -416,13 +417,17 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	let endPostProcessingMillis;
 	let entitiesAndFacets;
 
+	let memBefore = memories.areMadeOfThis();
+	const initialMem = memBefore;
+
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
 			debug(`fetchUpdateCorrelations: deltaEntities.length=${Object.keys(deltaEntities).length}, ignoreEntities.length=${JSON.stringify(Object.keys(ignoreEntities).length)}`);
-
+      memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after getLatestEntitiesMentioned`, memBefore);
 			startFacetSearchesMillis = Date.now();
 			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities)
 			.then( entitiesAndFacetsSnapshot => {
+				memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after getAllEntityFacets`, memBefore);
 				entitiesAndFacets = entitiesAndFacetsSnapshot;
 				endFacetSearchesMillis = Date.now();
 				return entitiesAndFacetsSnapshot;
@@ -434,10 +439,12 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities));
 		} )
 		.then( variationsOfEntities => {
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after fetchVariationsOfEntities`, memBefore);
 			entitiesAndFacets['v2Details'] = variationsOfEntities;
 			return v1v2.fetchPrefLabelsOfEntities(Object.keys(entitiesAndFacets.entities));
 		} )
 		.then( entityToPrefLabel => {
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after fetchPrefLabelsOfEntities`, memBefore);
 			entitiesAndFacets['v2PrefLabels'] = entityToPrefLabel;
 			endVariationsMillis = Date.now();
 			return entityToPrefLabel;
@@ -445,6 +452,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		.then( entityToPrefLabel => {
 			startUpdatesMillis = Date.now();
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after updateAllCoocsAndEntities`, memBefore);
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
 			if (symmetryProblems.length > 0) {
 				console.log(`ERROR: fetchUpdateCorrelations: symmetryProblems: ${JSON.stringify(symmetryProblems, null, 2)}`);
@@ -509,9 +517,12 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 
 			summaryData['delta'] = delta;
 			console.log(`INFO: fetchUpdateCorrelations: delta=${JSON.stringify(delta, null, 2)}`);
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after findIslands et al`, memBefore);
 
 			fetchContent.flushAllCaches();
-
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after flushAllCaches`, memBefore);
+			memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after everything, for whole process`, initialMem );
+			memories.logSnapshotAndFlush();
 			return summaryData;
 		})
 		.catch( err => {

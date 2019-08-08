@@ -12,6 +12,7 @@ app.set('view engine', 'handlebars');
 const fetchContent = require('./bin/lib/fetchContent');
 const    correlate = require('./bin/lib/correlate');
 const         v1v2 = require('./bin/lib/v1v2');
+const     memories = require('./bin/lib/memories');
 
 const validateRequest = require('./bin/lib/check-token');
 
@@ -441,9 +442,11 @@ function postStartup(iterationsRemaining=MAX_POSTSTARTUP_ITERATIONS) {
   const postStartupRangeSecs = (process.env.hasOwnProperty('POST_STARTUP_RANGE_SECS'))? parseInt(process.env.POST_STARTUP_RANGE_SECS) : 0;
   console.log(`INFO: postStartup: postStartupRangeSecs=${postStartupRangeSecs}, iterationsRemaining=${iterationsRemaining}`);
   let force=true;
+  const memBefore = memories.areMadeOfThis();
   return correlate.fetchUpdateCorrelationsEarlier(postStartupRangeSecs, force)
   .then(summaryData => debug(`postStartup: iterationsRemaining=${iterationsRemaining}, summaryData=${JSON.stringify(summaryData)}`) )
   .then( () => {
+    memories.areBeyondCompareAndLog( `postStartup: post iteration`, memBefore );
     if( iterationsRemaining > 0 ){
       return postStartup( iterationsRemaining -1 );
     } else {
@@ -463,8 +466,10 @@ function updateEverySoOften(count=0){
     console.log(`INFO: updateEverySoOften: next update in ${updateEverySecs} secs.`);
     setTimeout(() => {
       console.log(`INFO: updateEverySoOften: count=${count}, UPDATE_EVERY_SECS=${updateEverySecs}`);
+      const memBefore = memories.areMadeOfThis();
       return correlate.fetchUpdateCorrelationsLatest()
       .then(summaryData => debug(`updateEverySoOften: fetchUpdateCorrelationsLatest: ${JSON.stringify(summaryData)}`) )
+      .then( () => memories.areBeyondCompareAndLog( `updateEverySoOften: ending iteration`, memBefore ) )
       .then( () => updateEverySoOften(count+1) )
       .catch( err => {
         console.log( `ERROR: correlate.updateEverySoOften: err.message=${err.message}`);
