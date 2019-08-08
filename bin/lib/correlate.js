@@ -479,10 +479,10 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after findIslands`, memBefore);
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
 			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after linkKnownEntitiesToAllIslands`, memBefore);
-			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl(soNearliesOnMainIsland); // passing in prev instance of soNearliesOnMainIsland so we can try and reduce the big bang GC of the entirety of the prev one
-			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandImpl`, memBefore);
-			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
-			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandByEntity`, memBefore);
+			// soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl(soNearliesOnMainIsland); // passing in prev instance of soNearliesOnMainIsland so we can try and reduce the big bang GC of the entirety of the prev one
+			// memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandImpl`, memBefore);
+			// soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
+			// memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandByEntity`, memBefore);
 			biggestIsland = calcIslandSortedByCount( (allIslands.length > 0)? allIslands[0] : [] );
 			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcIslandSortedByCount`, memBefore);
 
