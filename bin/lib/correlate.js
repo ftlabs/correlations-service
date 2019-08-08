@@ -831,19 +831,27 @@ function calcSoNearliesOnMainIslandImpl(){
 	if( allIslands.length > 0 ){
 		const knownIslanderPairs = {};
 		const islanders = Object.keys( allIslands[0] );
+
+		// attempt to pre calc much-re-used data
+		const islanderEntityCoocEntities = {}; // [entity] = [e1, e2, e3...]
+		islanders.forEach( entity => {
+			islanderEntityCoocEntities[entity] = Object.keys(allCoocs[entity]);
+		});
+
 		for( let entity1 of islanders ){
 			const entity1Coocs = allCoocs[entity1];
 			for( let entity2 of islanders ){
 				if( entity1 == entity2 ){ continue; }
 				if(entity1Coocs.hasOwnProperty(entity2)){ continue; }
-				const islanderPair = [entity1, entity2].sort().join('');
+				// const islanderPair = [entity1, entity2].sort().join('');
+				const islanderPair = (entity1 < entity2)? `${entity1}${entity2}` : `${entity2}${entity1}`;
 				if( knownIslanderPairs[islanderPair]){
 					continue;
 				} else {
 					knownIslanderPairs[islanderPair] = true;
 				}
-				const intersection = Object.keys(allCoocs[entity2]).filter(e => {return entity1Coocs[e]});
-				intersection.sort();
+				const intersection = islanderEntityCoocEntities[entity2].filter(e => {return entity1Coocs[e]});
+				// intersection.sort(); // why was this being sorted?
 				if (intersection.length > 0) {
 					soNearlies.push({
 						entity1,

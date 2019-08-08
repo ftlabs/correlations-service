@@ -3,3 +3,5 @@ node_modules/*
 *.log
 ./*.mp3
 .DS_Store
+*.temp
+*.tmp
