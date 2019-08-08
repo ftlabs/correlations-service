@@ -479,7 +479,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after findIslands`, memBefore);
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
 			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after linkKnownEntitiesToAllIslands`, memBefore);
-			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
+			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl(soNearliesOnMainIsland); // passing in prev instance of soNearliesOnMainIsland so we can try and reduce the big bang GC of the entirety of the prev one
 			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandImpl`, memBefore);
 			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
 			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandByEntity`, memBefore);
@@ -825,14 +825,23 @@ function calcChainLengthsFrom(rootEntity){
 	}
 }
 
-function calcSoNearliesOnMainIslandImpl(){
-	let soNearlies = [];
+function calcSoNearliesOnMainIslandImpl(soNearlies=[]){
+	// - re-use existing soNearlies if poss, or create a new ones
+  // - pack the soNearliesByPair into a list for return
+
+	// - unpack soNearlies into map for easy access
+	// - assume entity1<entity2
+	const soNearliesByPair = {};
+	soNearlies.forEach( sn => {
+		const key = `${sn.entity1}${sn.entity2}`;
+		soNearliesByPair[key] = sn;
+	})
 
 	if( allIslands.length > 0 ){
 		const knownIslanderPairs = {};
 		const islanders = Object.keys( allIslands[0] );
 
-		// attempt to pre calc much-re-used data
+		// pre calc much-re-used data
 		const islanderEntityCoocEntities = {}; // [entity] = [e1, e2, e3...]
 		islanders.forEach( entity => {
 			islanderEntityCoocEntities[entity] = Object.keys(allCoocs[entity]);
@@ -844,7 +853,16 @@ function calcSoNearliesOnMainIslandImpl(){
 				if( entity1 == entity2 ){ continue; }
 				if(entity1Coocs.hasOwnProperty(entity2)){ continue; }
 				// const islanderPair = [entity1, entity2].sort().join('');
-				const islanderPair = (entity1 < entity2)? `${entity1}${entity2}` : `${entity2}${entity1}`;
+				let entity1Sorted;
+				let entity2Sorted;
+				if (entity1 < entity2) {
+					entity1Sorted = entity1;
+					entity2Sorted = entity2;
+				} else {
+					entity1Sorted = entity2;
+					entity2Sorted = entity1;
+				}
+				const islanderPair = `${entity1Sorted}${entity2Sorted}`;
 				if( knownIslanderPairs[islanderPair]){
 					continue;
 				} else {
@@ -853,24 +871,35 @@ function calcSoNearliesOnMainIslandImpl(){
 				const intersection = islanderEntityCoocEntities[entity2].filter(e => {return entity1Coocs[e]});
 				// intersection.sort(); // why was this being sorted?
 				if (intersection.length > 0) {
-					soNearlies.push({
-						entity1,
-						entity2,
-						intersectionList : intersection,
-						intersectionSize : intersection.length,
-					});
+					let soNearly = soNearliesByPair[islanderPair];
+					if (soNearly) {
+						if (intersection.length > soNearly.intersectionSize) { // assume can only get longer, never shorter
+							soNearly.intersectionList = intersection;
+							soNearly.intersectionSize = intersection.length;
+						}
+					} else { // its a brand new soNearly
+						soNearly = {
+							entity1 : entity1Sorted,
+							entity2 : entity2Sorted,
+							intersectionList : intersection,
+							intersectionSize : intersection.length,
+						};
+						soNearliesByPair[islanderPair] = soNearly;
+					}
 				}
 			}
 		}
 	}
 
-	soNearlies.sort( (a,b) => {
+	const newSoNearlies = Object.values( soNearliesByPair );
+
+	newSoNearlies.sort( (a,b) => {
 		if      (a.intersectionSize < b.intersectionSize) { return +1; }
 		else if (a.intersectionSize > b.intersectionSize) { return -1; }
 		else                                              { return  0; }
 	})
 
-	return soNearlies;
+	return newSoNearlies;
 }
 
 function calcSoNearliesOnMainIslandByEntity(){
