@@ -141,7 +141,7 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
-	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList)}`);
+	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList)}, entitiesList.length=${entitiesList.length}`);
 
 	const entityFacets = {}; // to be populated from within each search promise
 
@@ -191,7 +191,7 @@ function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	return delayedDirectly(FACETS_CONCURRENCE, entityPromisers, FACETS_DELAY_MILLIS)
 		.then( function(searchesDetails) {
 			const counts = searchesDetails.map( sd => sd.numEntitiesFoundPerFacet );
-			debug( `getAllEntityFacets: numFacets=${searchesDetails.length}, counts=${JSON.stringify(counts)}`);
+			debug( `getAllEntityFacets: numFacets=${searchesDetails.length}, counts=${JSON.stringify(counts)}, numFacets=${searchesDetails.length}`);
 			return {
 				entities,
 				entityFacets,

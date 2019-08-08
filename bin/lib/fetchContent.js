@@ -249,7 +249,7 @@ function fetchResText(url, options){
 		if(resOk){
 			return res;
 		} else {
-			throw new Error(`fetchResText: res not ok: res.status=${res['status']}, res.statusText=${res['statusText']}, url=${url}, options=${JSON.stringify(options)}`);
+			throw new Error(`fetchResText: res not ok: res.status=${res['status']}, res.statusText=${res['statusText']}, url=${url.replace(/apiKey=[a-zA-Z0-9\-]+/, 'apiKey=...')}, options=${JSON.stringify(options)}`);
 		}
 	})
 	.then( res  => res.text() )
