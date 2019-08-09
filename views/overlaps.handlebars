@@ -1,4 +1,28 @@
+<style>
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+tr {
+  border-bottom: 1px solid #ccc;
+}
+td {
+  vertical-align: top;
+  border-right: 1px solid #ccc;
+}
+ul {
+  list-style: none;
+  padding: 5px;
+  margin: 0;
+  text-align: left;
+  list-style-position: inside;
+}
+
+</style>
+
+
 <h1>FTLabs: comparing friends and friends of friends of {{entityPair}} (who are {{relationship}})</h1>
+
 
 <table>
   <tr>
@@ -16,7 +40,7 @@
     <td>
       <ul>
         {{#each overlappingChains.overlaps.friends.shared}}
-          <li>{{this}}</li>
+          <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
         {{/each}}
       </ul>
     </td>
@@ -26,7 +50,7 @@
         <h3>{{@key}}</h3>
         <ul>
           {{#each this}}
-            <li>{{this}}</li>
+            <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
           {{/each}}
         </ul>
       {{/each}}
@@ -35,7 +59,7 @@
     <td>
       <ul>
         {{#each overlappingChains.overlaps.friendsOfFriends.sharedViaUnsharedFriends}}
-          <li>{{this}}</li>
+          <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
         {{/each}}
       </ul>
     </td>
@@ -43,17 +67,17 @@
     <td>
       <ul>
         {{#each overlappingChains.overlaps.friendsOfFriends.sharedViaSharedFriends}}
-          <li>{{this}}</li>
+          <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
         {{/each}}
       </ul>
     </td>
 
     <td>
-      {{#each overlappingChains.overlaps.friends.unshared}}
+      {{#each overlappingChains.overlaps.friendsOfFriends.unshared}}
         <h3>{{@key}}</h3>
         <ul>
           {{#each this}}
-            <li>{{this}}</li>
+            <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
           {{/each}}
         </ul>
       {{/each}}
