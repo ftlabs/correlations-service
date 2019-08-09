@@ -21,8 +21,13 @@ ul {
 </style>
 
 
-<h1>FTLabs: comparing friends and friends of friends of {{entityPair}} (who are {{relationship}})</h1>
-
+<h1>FTLabs: comparing friends and friends of friends</h1>
+<p>
+  {{#each overlappingChains.entities}}
+  <a href="/calcChainLengthsFrom/{{this}}">{{this}}</a>,
+  {{/each}}
+(who are {{relationship}}).
+</p>
 
 <table>
   <tr>
