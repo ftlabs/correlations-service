@@ -1,0 +1,65 @@
+<h1>FTLabs: comparing friends and friends of friends of {{entityPair}} (who are {{relationship}})</h1>
+
+<table>
+  <tr>
+    <td colspan="2">friends</td>
+    <td colspan="3">friends of friends</td>
+  </tr>
+  <tr>
+    <td>shared</td>
+    <td>unshared</td>
+    <td>via unshared friends</td>
+    <td>via shared friends</td>
+    <td>unshared</td>
+  </tr>
+  <tr>
+    <td>
+      <ul>
+        {{#each overlappingChains.overlaps.friends.shared}}
+          <li>{{this}}</li>
+        {{/each}}
+      </ul>
+    </td>
+
+    <td>
+      {{#each overlappingChains.overlaps.friends.unshared}}
+        <h3>{{@key}}</h3>
+        <ul>
+          {{#each this}}
+            <li>{{this}}</li>
+          {{/each}}
+        </ul>
+        <li>{{@key}}</li>
+      {{/each}}
+    </td>
+
+    <td>
+      <ul>
+        {{#each overlappingChains.overlaps.friendsOfFriends.sharedViaUnsharedFriends}}
+          <li>{{this}}</li>
+        {{/each}}
+      </ul>
+    </td>
+
+    <td>
+      <ul>
+        {{#each overlappingChains.overlaps.friendsOfFriends.sharedViaSharedFriends}}
+          <li>{{this}}</li>
+        {{/each}}
+      </ul>
+    </td>
+
+    <td>
+      {{#each overlappingChains.overlaps.friends.unshared}}
+        <h3>{{@key}}</h3>
+        <ul>
+          {{#each this}}
+            <li>{{this}}</li>
+          {{/each}}
+        </ul>
+        <li>{{@key}}</li>
+      {{/each}}
+    </td>
+
+  </tr>
+</table>

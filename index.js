@@ -492,6 +492,24 @@ app.get('/calcOverlappingChains/:entities', (req, res) => {
    }
 });
 
+app.get('/calcOverlappingChains/display/:entities', (req, res) => {
+  const entities = req.params.entities.split(',');
+  try {
+    const overlappingChains = correlate.calcOverlappingChains(entities);
+    res.render('overlaps', {
+      overlappingChains,
+      entityPair : overlappingChains.entities.join(' and '),
+      relationship : (overlappingChains.overlaps.areAlreadyFriends)? 'friends' : 'not friends',
+    });
+   }
+   catch( err ){
+     res.json( {
+       calling: '/calcOverlappingChains',
+       err : err.message,
+     });
+   }
+});
+
 
 //---
 
