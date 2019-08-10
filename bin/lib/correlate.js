@@ -530,6 +530,10 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after everything, for whole process`, initialMem );
 			memories.logSnapshotAndFlush();
 			memories.log( 'fetchUpdateCorrelations: absolute memory info', memories.areMadeOfThis() );
+
+			// flush caches which may now be out of date.
+			ChainLengthsCache = {};
+
 			return summaryData;
 		})
 		.catch( err => {
@@ -808,21 +812,34 @@ function findAllChainLengths(rootEntity){
 	return chainLengths;
 }
 
+let ChainLengthsCache = {}; // is flushed with every fetchUpdateCorrelations
+
 function calcChainLengthsFrom(rootEntity){
-	let chainLengths = [];
-	if (! knownEntities.hasOwnProperty(rootEntity) ) {
-		debug(`calcChainBetween: unknown rootEntity=${rootEntity}`);
+	let response = ChainLengthsCache[rootEntity];
+
+	if (response) {
+		debug( `calcChainLengthsFrom: cache HIT for rootEntity=${rootEntity}`);
 	} else {
-		chainLengths = findAllChainLengths(rootEntity);
-		if (chainLengths.length >= 3) {
-			chainLengths[2].soNearlies = soNearliesOnMainIslandByEntity[rootEntity];
+		debug( `calcChainLengthsFrom: cache MISS for rootEntity=${rootEntity}`);
+		let chainLengths = [];
+		if (! knownEntities.hasOwnProperty(rootEntity) ) {
+			debug(`calcChainBetween: unknown rootEntity=${rootEntity}`);
+		} else {
+			chainLengths = findAllChainLengths(rootEntity);
+			if (chainLengths.length >= 3) {
+				chainLengths[2].soNearlies = soNearliesOnMainIslandByEntity[rootEntity];
+			}
 		}
+
+		response = {
+			rootEntity,
+			chainLengths,
+		};
+
+		ChainLengthsCache[rootEntity] = response;
 	}
 
-	return {
-		rootEntity,
-		chainLengths,
-	}
+	return response;
 }
 
 function calcSoNearliesOnMainIslandImpl(soNearlies=[]){
