@@ -9,6 +9,7 @@ tr {
 td {
   vertical-align: top;
   border-right: 1px solid #ccc;
+  padding: 2px;
 }
 ul {
   list-style: none;
@@ -18,44 +19,45 @@ ul {
   list-style-position: inside;
 }
 
+h4{
+  text-align: center;
+}
+
 </style>
 
 
 <h1>FTLabs: comparing friends and friends of friends</h1>
-<p>
-  {{#each overlappingChains.entities}}
+<h2>{{#each overlappingChains.entities}}
   <a href="/calcChainLengthsFrom/{{this}}">{{this}}</a>,
-  {{/each}}
-(who are {{relationship}}).
-</p>
+  {{/each}} (who are <a href="#description">{{relationship}}</a>).</h2>
 
 <table>
   <tr>
-    <td colspan="2">friends</td>
-    <td colspan="3">friends of friends</td>
+    <td colspan="2"><h3>friends</h2></td>
+    <td colspan="3"><h3>friends of friends</h3></td>
   </tr>
   <tr>
-    <td>shared</td>
-    <td>unshared</td>
-    <td>via unshared friends</td>
-    <td>via shared friends</td>
-    <td>unshared</td>
+    <td><h3>shared</h3></td>
+    <td><h3>unshared</h3></td>
+    <td><h3>via unshared friends</h3></td>
+    <td><h3>via shared friends</h3></td>
+    <td><h3>unshared</h3></td>
   </tr>
   <tr>
     <td>
       <ul>
-        {{#each overlappingChains.overlaps.friends.shared}}
-          <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
+        {{#each friends.shared}}
+          <li><a href="{{this.url}}">{{this.name}}</a></li>
         {{/each}}
       </ul>
     </td>
 
     <td>
-      {{#each overlappingChains.overlaps.friends.unshared}}
-        <h3>{{@key}}</h3>
+      {{#each friends.unshared}}
+        <h4>{{@key}}</h4>
         <ul>
           {{#each this}}
-            <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
+          <li><a href="{{this.url}}">{{this.name}}</a></li>
           {{/each}}
         </ul>
       {{/each}}
@@ -63,26 +65,26 @@ ul {
 
     <td>
       <ul>
-        {{#each overlappingChains.overlaps.friendsOfFriends.sharedViaUnsharedFriends}}
-          <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
+        {{#each friendsOfFriends.sharedViaUnsharedFriends}}
+        <li><a href="{{this.url}}">{{this.name}}</a></li>
         {{/each}}
       </ul>
     </td>
 
     <td>
       <ul>
-        {{#each overlappingChains.overlaps.friendsOfFriends.sharedViaSharedFriends}}
-          <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
+        {{#each friendsOfFriends.sharedViaSharedFriends}}
+        <li><a href="{{this.url}}">{{this.name}}</a></li>
         {{/each}}
       </ul>
     </td>
 
     <td>
-      {{#each overlappingChains.overlaps.friendsOfFriends.unshared}}
-        <h3>{{@key}}</h3>
+      {{#each friendsOfFriends.unshared}}
+        <h4>{{@key}}</h4>
         <ul>
           {{#each this}}
-            <li><a href="/calcChainLengthsFrom/{{this}}">{{this}}</a></li>
+          <li><a href="{{this.url}}">{{this.name}}</a></li>
           {{/each}}
         </ul>
       {{/each}}
@@ -90,3 +92,6 @@ ul {
 
   </tr>
 </table>
+
+<h2 id="description">Description</h2>
+<p>{{{description}}}</p>
