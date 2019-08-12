@@ -414,7 +414,7 @@ function expandFriend(f){
   return {
     id : f,
     name: prefixName,
-    nameNbsp : prefixName.replace(/ /,'&nbsp;').replace(/ /,'&nbsp;'),
+    nameNbsp : prefixName.replace(/ /,'&nbsp;'),
     taxonomy,
     url : `/calcChainLengthsFrom/${f}`,
   }
