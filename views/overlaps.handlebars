@@ -10,6 +10,7 @@ td {
   vertical-align: top;
   border-right: 1px solid #ccc;
   padding: 2px;
+  /* white-space: nowrap; // using nameNbsp instead */
 }
 ul {
   list-style: none;
@@ -47,7 +48,7 @@ h4{
     <td>
       <ul>
         {{#each friends.shared}}
-          <li><a href="{{this.url}}">{{this.name}}</a></li>
+          <li><a href="{{this.url}}">{{{this.nameNbsp}}}</a></li>
         {{/each}}
       </ul>
     </td>
@@ -57,7 +58,7 @@ h4{
         <h4>{{@key}}</h4>
         <ul>
           {{#each this}}
-          <li><a href="{{this.url}}">{{this.name}}</a></li>
+          <li><a href="{{this.url}}">{{{this.nameNbsp}}}</a></li>
           {{/each}}
         </ul>
       {{/each}}
@@ -66,7 +67,7 @@ h4{
     <td>
       <ul>
         {{#each friendsOfFriends.sharedViaUnsharedFriends}}
-        <li><a href="{{this.url}}">{{this.name}}</a></li>
+        <li><a href="{{this.url}}">{{{this.nameNbsp}}}</a></li>
         {{/each}}
       </ul>
     </td>
@@ -74,7 +75,7 @@ h4{
     <td>
       <ul>
         {{#each friendsOfFriends.sharedViaSharedFriends}}
-        <li><a href="{{this.url}}">{{this.name}}</a></li>
+        <li><a href="{{this.url}}">{{{this.nameNbsp}}}</a></li>
         {{/each}}
       </ul>
     </td>
@@ -84,7 +85,7 @@ h4{
         <h4>{{@key}}</h4>
         <ul>
           {{#each this}}
-          <li><a href="{{this.url}}">{{this.name}}</a></li>
+          <li><a href="{{this.url}}">{{{this.nameNbsp}}}</a></li>
           {{/each}}
         </ul>
       {{/each}}

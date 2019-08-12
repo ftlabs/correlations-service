@@ -410,9 +410,11 @@ function expandFriend(f){
   const name = fPieces[1];
   const taxonomy = fPieces[0];
   const prefix = (taxonomy==='people')? '' : 'o:';
+  const prefixName = `${prefix}${name}`;
   return {
     id : f,
-    name: `${prefix}${name}`,
+    name: prefixName,
+    nameNbsp : prefixName.replace(/ /,'&nbsp;').replace(/ /,'&nbsp;'),
     taxonomy,
     url : `/calcChainLengthsFrom/${f}`,
   }
