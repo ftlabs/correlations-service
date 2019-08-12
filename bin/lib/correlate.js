@@ -4,6 +4,7 @@ const v1v2         = require('./v1v2'); // obtain all the CAPI v1 and v2 variant
 const directly     = require('./directly'); 	// trying Rhys' https://github.com/wheresrhys/directly.
 						// You pass 'directly' a list of fns, each of which generates a promise.
 						// The fn calls are throttled.
+const memories = require('./memories');
 
 // ONTOLOGIES overrides ONTOLOGY
 const single_ontology = (process.env.ONTOLOGY)? process.env.ONTOLOGY : 'people';
@@ -140,49 +141,57 @@ function getLatestEntitiesMentioned(afterSecs, beforeSecs) {
 
 function getAllEntityFacets(afterSecs, beforeSecs, entities) {
 	const entitiesList = Object.keys(entities).filter(entity => { return !ignoreEntities[entity]; });
-	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList)}`);
+	debug(`getAllEntityFacets: entitiesList.length=${entitiesList.length}, entitiesList=${JSON.stringify(entitiesList)}, entitiesList.length=${entitiesList.length}`);
+
+	const entityFacets = {}; // to be populated from within each search promise
 
 	const entityPromisers = entitiesList.map( entity => {
 		return function () {
 			return fetchContent.searchUnixTimeRange(afterSecs, beforeSecs, { constraints: [entity], ontologies: ONTOLOGIES } )
-					.catch( err => {
-						console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
-						return;
-					})
-					;
-		};
-	});
+			.then( function( searchResponse ){
+				const sapiObj = searchResponse.sapiObj;
 
-	return delayedDirectly(FACETS_CONCURRENCE, entityPromisers, FACETS_DELAY_MILLIS)
-		.then( searchResponses => {
-			const entityFacets = {};
-			for( let searchResponse of searchResponses ){
-				const targetEntity = searchResponse.params.constraints[0];
-				const      sapiObj = searchResponse.sapiObj;
-
+				let numEntitiesFoundPerFacet = 0;
 				if (! sapiObj ) {
-					debug('getAllEntityFacets: no sapiObj');
+					debug(`getAllEntityFacets: no sapiObj, entity=${entity}`);
 				} else if (! sapiObj.results ) {
-					debug('getAllEntityFacets: no results');
+					debug(`getAllEntityFacets: no results, entity=${entity}`);
 				} else if( ! sapiObj.results[0] ) {
-					debug('getAllEntityFacets: no results[0]');
+					debug(`getAllEntityFacets: no results[0], entity=${entity}`);
 				} else if( ! sapiObj.results[0].facets ) {
-					debug('getAllEntityFacets: no results[0].facets');
+					debug(`getAllEntityFacets: no results[0].facets`);
 				} else {
-					entityFacets[targetEntity] = [];
+					entityFacets[entity] = [];
 					for( let facet of sapiObj.results[0].facets ){
 						const ontology = facet.name;
 						if (!ONTOLOGIES.includes(ontology)) { continue; }
 						for( let element of facet.facetElements) {
 							if ( ontology.endsWith('Id') && ! element.name.match(UUID_REGEX) ) { continue; }
-							const entity = `${ontology}:${element.name}`;
-							if( entity == targetEntity ) { continue; }
-							if( ignoreEntities[entity] ) { continue; }
-							entityFacets[targetEntity].push(entity);
+							const facetEntity = `${ontology}:${element.name}`;
+							if( entity == facetEntity ) { continue; }
+							if( ignoreEntities[facetEntity] ) { continue; }
+							entityFacets[entity].push(facetEntity);
 						}
 					}
+					numEntitiesFoundPerFacet = entityFacets[entity].length;
 				}
-			}
+
+				return {
+					numEntitiesFoundPerFacet
+				}
+			})
+			.catch( function( err ){
+				console.log( `ERROR: getAllEntityFacets: promise for entity=${entity}, err=${err}`);
+				return;
+			})
+			;
+		};
+	});
+
+	return delayedDirectly(FACETS_CONCURRENCE, entityPromisers, FACETS_DELAY_MILLIS)
+		.then( function(searchesDetails) {
+			const counts = searchesDetails.map( sd => sd.numEntitiesFoundPerFacet );
+			debug( `getAllEntityFacets: numFacets=${searchesDetails.length}, counts=${JSON.stringify(counts)}, numFacets=${searchesDetails.length}`);
 			return {
 				entities,
 				entityFacets,
@@ -408,13 +417,17 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 	let endPostProcessingMillis;
 	let entitiesAndFacets;
 
+	let memBefore = memories.areMadeOfThis();
+	const initialMem = memBefore;
+
 	return getLatestEntitiesMentioned(afterSecs, beforeSecs)
 		.then( deltaEntities => {
 			debug(`fetchUpdateCorrelations: deltaEntities.length=${Object.keys(deltaEntities).length}, ignoreEntities.length=${JSON.stringify(Object.keys(ignoreEntities).length)}`);
-
+      memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after getLatestEntitiesMentioned`, memBefore);
 			startFacetSearchesMillis = Date.now();
 			return getAllEntityFacets(afterSecs, beforeSecs, deltaEntities)
 			.then( entitiesAndFacetsSnapshot => {
+				memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after getAllEntityFacets`, memBefore);
 				entitiesAndFacets = entitiesAndFacetsSnapshot;
 				endFacetSearchesMillis = Date.now();
 				return entitiesAndFacetsSnapshot;
@@ -426,10 +439,12 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		 	return v1v2.fetchVariationsOfEntities(Object.keys(entitiesAndFacets.entities));
 		} )
 		.then( variationsOfEntities => {
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after fetchVariationsOfEntities`, memBefore);
 			entitiesAndFacets['v2Details'] = variationsOfEntities;
 			return v1v2.fetchPrefLabelsOfEntities(Object.keys(entitiesAndFacets.entities));
 		} )
 		.then( entityToPrefLabel => {
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after fetchPrefLabelsOfEntities`, memBefore);
 			entitiesAndFacets['v2PrefLabels'] = entityToPrefLabel;
 			endVariationsMillis = Date.now();
 			return entityToPrefLabel;
@@ -437,6 +452,7 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 		.then( entityToPrefLabel => {
 			startUpdatesMillis = Date.now();
 			const newCounts = updateAllCoocsAndEntities(entitiesAndFacets); // updates globals
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after updateAllCoocsAndEntities`, memBefore);
 			const symmetryProblems = checkAllCoocsForSymmetryProblems();
 			if (symmetryProblems.length > 0) {
 				console.log(`ERROR: fetchUpdateCorrelations: symmetryProblems: ${JSON.stringify(symmetryProblems, null, 2)}`);
@@ -460,15 +476,21 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			startPostProcessingMillis = Date.now();
 			// post-processing: re-calc all the islands, and link entities to them
 			allIslands         = findIslands(allCoocs);
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after findIslands`, memBefore);
 			allIslandsByEntity = linkKnownEntitiesToAllIslands();
-			soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl();
-			soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after linkKnownEntitiesToAllIslands`, memBefore);
+			// soNearliesOnMainIsland = calcSoNearliesOnMainIslandImpl(soNearliesOnMainIsland); // passing in prev instance of soNearliesOnMainIsland so we can try and reduce the big bang GC of the entirety of the prev one
+			// memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandImpl`, memBefore);
+			// soNearliesOnMainIslandByEntity = calcSoNearliesOnMainIslandByEntity();
+			// memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcSoNearliesOnMainIslandByEntity`, memBefore);
 			biggestIsland = calcIslandSortedByCount( (allIslands.length > 0)? allIslands[0] : [] );
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after calcIslandSortedByCount`, memBefore);
 
 			endPostProcessingMillis = Date.now();
 			const numDeltaEntities = Object.keys(entitiesAndFacets.entities).length;
 
 			const summaryData = getSummaryData();
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after getSummaryData`, memBefore);
 			const intervalCoveredSecs = (beforeSecs - afterSecs);
 			const delta = {
 				times : {
@@ -501,9 +523,13 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 
 			summaryData['delta'] = delta;
 			console.log(`INFO: fetchUpdateCorrelations: delta=${JSON.stringify(delta, null, 2)}`);
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after findIslands et al`, memBefore);
 
 			fetchContent.flushAllCaches();
-
+			memBefore = memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after flushAllCaches`, memBefore);
+			memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after everything, for whole process`, initialMem );
+			memories.logSnapshotAndFlush();
+			memories.log( 'fetchUpdateCorrelations: absolute memory info', memories.areMadeOfThis() );
 			return summaryData;
 		})
 		.catch( err => {
@@ -799,44 +825,81 @@ function calcChainLengthsFrom(rootEntity){
 	}
 }
 
-function calcSoNearliesOnMainIslandImpl(){
-	let soNearlies = [];
+function calcSoNearliesOnMainIslandImpl(soNearlies=[]){
+	// - re-use existing soNearlies if poss, or create a new ones
+  // - pack the soNearliesByPair into a list for return
+
+	// - unpack soNearlies into map for easy access
+	// - assume entity1<entity2
+	const soNearliesByPair = {};
+	soNearlies.forEach( sn => {
+		const key = `${sn.entity1}${sn.entity2}`;
+		soNearliesByPair[key] = sn;
+	})
 
 	if( allIslands.length > 0 ){
 		const knownIslanderPairs = {};
 		const islanders = Object.keys( allIslands[0] );
+
+		// pre calc much-re-used data
+		const islanderEntityCoocEntities = {}; // [entity] = [e1, e2, e3...]
+		islanders.forEach( entity => {
+			islanderEntityCoocEntities[entity] = Object.keys(allCoocs[entity]);
+		});
+
 		for( let entity1 of islanders ){
 			const entity1Coocs = allCoocs[entity1];
 			for( let entity2 of islanders ){
 				if( entity1 == entity2 ){ continue; }
 				if(entity1Coocs.hasOwnProperty(entity2)){ continue; }
-				const islanderPair = [entity1, entity2].sort().join('');
+				// const islanderPair = [entity1, entity2].sort().join('');
+				let entity1Sorted;
+				let entity2Sorted;
+				if (entity1 < entity2) {
+					entity1Sorted = entity1;
+					entity2Sorted = entity2;
+				} else {
+					entity1Sorted = entity2;
+					entity2Sorted = entity1;
+				}
+				const islanderPair = `${entity1Sorted}${entity2Sorted}`;
 				if( knownIslanderPairs[islanderPair]){
 					continue;
 				} else {
 					knownIslanderPairs[islanderPair] = true;
 				}
-				const intersection = Object.keys(allCoocs[entity2]).filter(e => {return entity1Coocs[e]});
-				intersection.sort();
+				const intersection = islanderEntityCoocEntities[entity2].filter(e => {return entity1Coocs[e]});
+				// intersection.sort(); // why was this being sorted?
 				if (intersection.length > 0) {
-					soNearlies.push({
-						entity1,
-						entity2,
-						intersectionList : intersection,
-						intersectionSize : intersection.length,
-					});
+					let soNearly = soNearliesByPair[islanderPair];
+					if (soNearly) {
+						if (intersection.length > soNearly.intersectionSize) { // assume can only get longer, never shorter
+							soNearly.intersectionList = intersection;
+							soNearly.intersectionSize = intersection.length;
+						}
+					} else { // its a brand new soNearly
+						soNearly = {
+							entity1 : entity1Sorted,
+							entity2 : entity2Sorted,
+							intersectionList : intersection,
+							intersectionSize : intersection.length,
+						};
+						soNearliesByPair[islanderPair] = soNearly;
+					}
 				}
 			}
 		}
 	}
 
-	soNearlies.sort( (a,b) => {
+	const newSoNearlies = Object.values( soNearliesByPair );
+
+	newSoNearlies.sort( (a,b) => {
 		if      (a.intersectionSize < b.intersectionSize) { return +1; }
 		else if (a.intersectionSize > b.intersectionSize) { return -1; }
 		else                                              { return  0; }
 	})
 
-	return soNearlies;
+	return newSoNearlies;
 }
 
 function calcSoNearliesOnMainIslandByEntity(){
