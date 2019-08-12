@@ -530,6 +530,10 @@ function fetchUpdateCorrelations(afterSecs, beforeSecs) {
 			memories.areBeyondCompareAndLog(`fetchUpdateCorrelations: after everything, for whole process`, initialMem );
 			memories.logSnapshotAndFlush();
 			memories.log( 'fetchUpdateCorrelations: absolute memory info', memories.areMadeOfThis() );
+
+			// flush caches which may now be out of date.
+			ChainLengthsCache = {};
+
 			return summaryData;
 		})
 		.catch( err => {
@@ -808,21 +812,34 @@ function findAllChainLengths(rootEntity){
 	return chainLengths;
 }
 
+let ChainLengthsCache = {}; // is flushed with every fetchUpdateCorrelations
+
 function calcChainLengthsFrom(rootEntity){
-	let chainLengths = [];
-	if (! knownEntities.hasOwnProperty(rootEntity) ) {
-		debug(`calcChainBetween: unknown rootEntity=${rootEntity}`);
+	let response = ChainLengthsCache[rootEntity];
+
+	if (response) {
+		debug( `calcChainLengthsFrom: cache HIT for rootEntity=${rootEntity}`);
 	} else {
-		chainLengths = findAllChainLengths(rootEntity);
-		if (chainLengths.length >= 3) {
-			chainLengths[2].soNearlies = soNearliesOnMainIslandByEntity[rootEntity];
+		debug( `calcChainLengthsFrom: cache MISS for rootEntity=${rootEntity}`);
+		let chainLengths = [];
+		if (! knownEntities.hasOwnProperty(rootEntity) ) {
+			debug(`calcChainBetween: unknown rootEntity=${rootEntity}`);
+		} else {
+			chainLengths = findAllChainLengths(rootEntity);
+			if (chainLengths.length >= 3) {
+				chainLengths[2].soNearlies = soNearliesOnMainIslandByEntity[rootEntity];
+			}
 		}
+
+		response = {
+			rootEntity,
+			chainLengths,
+		};
+
+		ChainLengthsCache[rootEntity] = response;
 	}
 
-	return {
-		rootEntity,
-		chainLengths,
-	}
+	return response;
 }
 
 function calcSoNearliesOnMainIslandImpl(soNearlies=[]){
@@ -1352,10 +1369,13 @@ function 	allEntitiesWithPrefLabels(){
 }
 
 function calcOverlappingChains( entities ){
-	if (entities.length !== 2) { // asume this for now
-		throw new Error( `calcOverlappingChains: entities.length!=2, where entities=${JSON.stringify(entities)}` );
+	const numEntities = entities.length;
+
+	if (numEntities < 2) {
+		throw new Error( `calcOverlappingChains: entities.length<2, where entities=${JSON.stringify(entities)}` );
 	}
 
+	// can handle > 2 entities
 	const entity0 = entities[0];
 	const entity1 = entities[1];
 
@@ -1369,7 +1389,8 @@ function calcOverlappingChains( entities ){
 		}
 	});
 
-	const areAlreadyFriends = chainsByEntity[entity0].chainLengths[1].entities.includes(entity1);
+	// assume 'A friendOf B' => 'B friendOf A', and 'A ! friendOf A'
+	const areAlreadyFriends = entities.filter(e => chainsByEntity[e].chainLengths[1].entities.includes(entity0)).length == (numEntities -1);
 
 	const friends = {
 		NB : 'filtering out the initial entities from the friends lists',
@@ -1389,13 +1410,21 @@ function calcOverlappingChains( entities ){
 	})
 
 	const entity1Friends = chainsByEntity[entity1].chainLengths[1].entities;
-	friends.shared = chainsByEntity[entity0].chainLengths[1].entities.filter( friend => entity1Friends.includes( friend ) );
+	// shared => is a friend of all entities
+	friends.shared = entity1Friends.filter( f =>
+		(entities.filter( e => chainsByEntity[e].chainLengths[1].entities.includes(f) ).length == numEntities)
+	);
+
 	entities.forEach( entity => {
 		friends.unshared[entity] = chainsByEntity[entity].chainLengths[1].entities.filter( friend => !friends.shared.includes( friend ) && !entities.includes(friend));
 	});
 
 	const entity1FriendsOfFriends = chainsByEntity[entity1].chainLengths[2].entities;
-	friendsOfFriends.shared = chainsByEntity[entity0].chainLengths[2].entities.filter( fof => entity1FriendsOfFriends.includes(fof) && !allKnownFriends[fof] );
+// shared => is a fof of all entities
+	friendsOfFriends.shared = entity1FriendsOfFriends.filter( f =>
+		(entities.filter( e => chainsByEntity[e].chainLengths[2].entities.includes(f) ).length == numEntities)
+	);
+
 	entities.forEach( entity => {
 		friendsOfFriends.unshared[entity] = chainsByEntity[entity].chainLengths[2].entities.filter( fof => !friendsOfFriends.shared.includes(fof) && !entities.includes(fof) && !allKnownFriends[fof] );
 	});

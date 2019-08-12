@@ -392,6 +392,72 @@ app.get('/exhaustivelyPainfulDataConsistencyCheck', (req, res) => {
   ;
 });
 
+app.get('/calcOverlappingChains/:entities', (req, res) => {
+  const entities = req.params.entities.split(',');
+  try {
+	   res.json( correlate.calcOverlappingChains(entities) );
+   }
+   catch( err ){
+     res.json( {
+       calling: '/calcOverlappingChains',
+       err : err.message,
+     });
+   }
+});
+
+function expandFriend(f){
+  const fPieces = f.split(':');
+  const name = fPieces[1];
+  const taxonomy = fPieces[0];
+  const prefix = (taxonomy==='people')? '' : 'o:';
+  return {
+    id : f,
+    name: `${prefix}${name}`,
+    taxonomy,
+    url : `/calcChainLengthsFrom/${f}`,
+  }
+}
+
+app.get('/calcOverlappingChains/display/:entities', (req, res) => {
+  const entities = req.params.entities.split(',');
+  try {
+    const overlappingChains = correlate.calcOverlappingChains(entities);
+    const friends = {
+      shared : overlappingChains.overlaps.friends.shared.map( expandFriend ),
+      unshared : {},
+    };
+
+    Object.keys(overlappingChains.overlaps.friends.unshared).map( entity => {
+      friends.unshared[entity] = overlappingChains.overlaps.friends.unshared[entity].map( expandFriend )
+    })
+
+    const friendsOfFriends = {
+      sharedViaUnsharedFriends : overlappingChains.overlaps.friendsOfFriends.sharedViaUnsharedFriends.map( expandFriend ),
+      sharedViaSharedFriends : overlappingChains.overlaps.friendsOfFriends.sharedViaSharedFriends.map( expandFriend ),
+      unshared : {}
+    }
+
+    Object.keys(overlappingChains.overlaps.friendsOfFriends.unshared).map( entity => {
+      friendsOfFriends.unshared[entity] = overlappingChains.overlaps.friendsOfFriends.unshared[entity].map( expandFriend )
+    })
+
+    res.render('overlaps', {
+      overlappingChains,
+      entityPair : overlappingChains.entities.join(' and '),
+      relationship : (overlappingChains.overlaps.areAlreadyFriends)? 'friends' : 'not friends',
+      friends,
+      friendsOfFriends,
+      description : "Two entities are considered 'friends' if they are cited in the same article, and 'friends of friends' if they are not directly friends but share another entity they are both cited with.<br>E.g. Alan and Betty are cited in the same article so are considered 'friends', as are Betty and Chas who are both cited in a different article, but since Alan and Chas are never cited in the same article they are considered 'friends of friends', with Betty being the shared friend.<br>In this view, we are looking at shared friends, and shared friends of friends, paying particular attention to the grouping in sharedViaUnsharedFriends.<br>Entities in the 'unshared' columns are sorted by number of articles in which they are cited, most first.",
+    });
+   }
+   catch( err ){
+     res.json( {
+       calling: '/calcOverlappingChains',
+       err : err.message,
+     });
+   }
+});
+
 //---
 
 function startListening(){
@@ -478,20 +544,6 @@ function updateEverySoOften(count=0){
     }, updateEveryMillis);
   }
 }
-
-app.get('/calcOverlappingChains/:entities', (req, res) => {
-  const entities = req.params.entities.split(',');
-  try {
-	   res.json( correlate.calcOverlappingChains(entities) );
-   }
-   catch( err ){
-     res.json( {
-       calling: '/calcOverlappingChains',
-       err : err.message,
-     });
-   }
-});
-
 
 //---
 
