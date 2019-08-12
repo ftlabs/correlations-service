@@ -447,7 +447,13 @@ app.get('/calcOverlappingChains/display/:entities', (req, res) => {
       relationship : (overlappingChains.overlaps.areAlreadyFriends)? 'friends' : 'not friends',
       friends,
       friendsOfFriends,
-      description : "Two entities are considered 'friends' if they are cited in the same article, and 'friends of friends' if they are not directly friends but share another entity they are both cited with.<br>E.g. Alan and Betty are cited in the same article so are considered 'friends', as are Betty and Chas who are both cited in a different article, but since Alan and Chas are never cited in the same article they are considered 'friends of friends', with Betty being the shared friend.<br>In this view, we are looking at shared friends, and shared friends of friends, paying particular attention to the grouping in sharedViaUnsharedFriends.<br>Entities in the 'unshared' columns are sorted by number of articles in which they are cited, most first.",
+      description : [
+        "Two entities are considered 'friends' if they are cited in the same article, and 'friends of friends' if they are not directly friends but share another entity they are both cited with.",
+        "E.g. Alan and Betty are cited in the same article so are considered 'friends', as are Betty and Chas who are both cited in a different article, but since Alan and Chas are never cited in the same article they are considered 'friends of friends', with Betty being the shared friend.",
+        "In this view, we are looking at shared friends, and shared friends of friends, paying particular attention to the grouping in sharedViaUnsharedFriends.",
+        "Entities in the 'unshared' columns are sorted by number of articles in which they are cited, most first.",
+        "'Shared' means across *all* the specified entities, so if 2 of 3 entities share a friend and the 3rd doesn't, that friend counts as not shared."
+      ].join('<br>'),
     });
    }
    catch( err ){
