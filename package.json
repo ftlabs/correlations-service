@@ -27,7 +27,7 @@
     "debug": "^2.3.3",
     "dotenv": "^2.0.0",
     "express": "^4.16.4",
-    "express-handlebars": "^3.0.2",
+    "express-handlebars": "^3.1.0",
     "ffmpeg-static": "^2.4.0",
     "is-uuid": "^1.0.2",
     "md5": "^2.2.1",
