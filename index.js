@@ -14,14 +14,15 @@ const    correlate = require('./bin/lib/correlate');
 const         v1v2 = require('./bin/lib/v1v2');
 const     memories = require('./bin/lib/memories');
 
-const OktaMiddleware  = require('@financial-times/okta-express-middleware');
-const session         = require('cookie-session');
+const session = require('cookie-session');
+const OktaMiddleware = require('@financial-times/okta-express-middleware');
 
 app.use(session({
 	secret: process.env.SESSION_TOKEN,
 	maxAge: 24 * 3600 * 1000, //24h
 	httpOnly: true
 }));
+
 
 var requestLogger = function(req, res, next) {
     debug("RECEIVED REQUEST:", req.method, req.url);
@@ -30,7 +31,7 @@ var requestLogger = function(req, res, next) {
 
 app.use(requestLogger);
 
-// these routes do *not* have s3o
+// these routes do *not* use OKTA
 
 app.use('/static', express.static('static'));
 
@@ -88,35 +89,23 @@ app.get('/__gtg', (req, res) => {
 });
 
 
-// these route *do* use s3o
+// these route *do* use OKTA
 app.set('json spaces', 2);
 
 if (process.env.BYPASS_TOKEN == 'true') {
-  console.log( 'WARNING: env.BYPASS_TOKEN set to "true", so skipping s3o checks' );
+  console.log( 'WARNING: env.BYPASS_TOKEN set to "true", so skipping OKTA checks' );
 } else {
-  const passedToken = req.headers.token;
+  const okta = new OktaMiddleware({
+    client_id: process.env.OKTA_CLIENT,
+    client_secret: process.env.OKTA_SECRET,
+    issuer: process.env.OKTA_ISSUER,
+    appBaseUrl: process.env.BASE_URL,
+    scope: 'openid offline_access name'
+  });
 
-  if(passedToken === undefined){
-		debug(`No token has been passed to service. Falling through to OKTA`);
-		const okta = new OktaMiddleware({
-      client_id: process.env.OKTA_CLIENT,
-      client_secret: process.env.OKTA_SECRET,
-      issuer: process.env.OKTA_ISSUER,
-      appBaseUrl: process.env.BASE_URL,
-      scope: 'openid offline_access name'
-    });
-    app.use(okta.router);
-    app.use(okta.ensureAuthenticated());
-    app.use(okta.verifyJwts());
-	} else if(passedToken === process.env.TOKEN){
-		debug(`Token was valid`);
-	} else {
-		res.status(401);
-		res.json({
-			status : 'err',
-			message : 'The token value passed was invalid.'
-		});
-	}
+  app.use(okta.router);
+  app.use(okta.ensureAuthenticated());
+  app.use(okta.verifyJwts());
 }
 
 function sortIsland( island ){

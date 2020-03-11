@@ -8,8 +8,8 @@ module.exports = (req, res, next) => {
 	debug(`Checking if token is valid`);
 
 	if(passedToken === undefined){
-		debug(`No token has been passed to service. Falling through to S3O`);
-		S3O(req, res, next);
+		debug(`No token has been passed to service. Falling through to OKTA`);
+		next();
 	} else if(passedToken === process.env.TOKEN){
 		debug(`Token was valid`);
 		next();
