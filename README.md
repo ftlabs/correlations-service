@@ -26,6 +26,7 @@ When building locally, specify them in a local file, .env (and NB, this must not
 
 ## Mandatory Environment params (the absence of which will kill the app on startup)
 
+* PORT=3030
 * CAPI_KEY=...
 
 ## Optional Environment params:

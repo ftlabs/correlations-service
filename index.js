@@ -14,7 +14,15 @@ const    correlate = require('./bin/lib/correlate');
 const         v1v2 = require('./bin/lib/v1v2');
 const     memories = require('./bin/lib/memories');
 
-const validateRequest = require('./bin/lib/check-token');
+const OktaMiddleware  = require('@financial-times/okta-express-middleware');
+const session         = require('cookie-session');
+//const validateRequest = require('./bin/lib/check-token');
+
+app.use(session({
+	secret: process.env.SESSION_TOKEN,
+	maxAge: 24 * 3600 * 1000, //24h
+	httpOnly: true
+}));
 
 var requestLogger = function(req, res, next) {
     debug("RECEIVED REQUEST:", req.method, req.url);
@@ -87,7 +95,19 @@ app.set('json spaces', 2);
 if (process.env.BYPASS_TOKEN == 'true') {
   console.log( 'WARNING: env.BYPASS_TOKEN set to "true", so skipping s3o checks' );
 } else {
-	app.use(validateRequest);
+  //app.use(validateRequest);
+
+  const okta = new OktaMiddleware({
+    client_id: process.env.OKTA_CLIENT,
+    client_secret: process.env.OKTA_SECRET,
+    issuer: process.env.OKTA_ISSUER,
+    appBaseUrl: process.env.BASE_URL,
+    scope: 'openid offline_access name'
+  });
+
+  app.use(okta.router);
+  app.use(okta.ensureAuthenticated());
+  app.use(okta.verifyJwts());
 }
 
 function sortIsland( island ){
