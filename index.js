@@ -16,7 +16,6 @@ const     memories = require('./bin/lib/memories');
 
 const OktaMiddleware  = require('@financial-times/okta-express-middleware');
 const session         = require('cookie-session');
-//const validateRequest = require('./bin/lib/check-token');
 
 app.use(session({
 	secret: process.env.SESSION_TOKEN,
@@ -95,19 +94,29 @@ app.set('json spaces', 2);
 if (process.env.BYPASS_TOKEN == 'true') {
   console.log( 'WARNING: env.BYPASS_TOKEN set to "true", so skipping s3o checks' );
 } else {
-  //app.use(validateRequest);
+  const passedToken = req.headers.token;
 
-  const okta = new OktaMiddleware({
-    client_id: process.env.OKTA_CLIENT,
-    client_secret: process.env.OKTA_SECRET,
-    issuer: process.env.OKTA_ISSUER,
-    appBaseUrl: process.env.BASE_URL,
-    scope: 'openid offline_access name'
-  });
-
-  app.use(okta.router);
-  app.use(okta.ensureAuthenticated());
-  app.use(okta.verifyJwts());
+  if(passedToken === undefined){
+		debug(`No token has been passed to service. Falling through to OKTA`);
+		const okta = new OktaMiddleware({
+      client_id: process.env.OKTA_CLIENT,
+      client_secret: process.env.OKTA_SECRET,
+      issuer: process.env.OKTA_ISSUER,
+      appBaseUrl: process.env.BASE_URL,
+      scope: 'openid offline_access name'
+    });
+    app.use(okta.router);
+    app.use(okta.ensureAuthenticated());
+    app.use(okta.verifyJwts());
+	} else if(passedToken === process.env.TOKEN){
+		debug(`Token was valid`);
+	} else {
+		res.status(401);
+		res.json({
+			status : 'err',
+			message : 'The token value passed was invalid.'
+		});
+	}
 }
 
 function sortIsland( island ){
