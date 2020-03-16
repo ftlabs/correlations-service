@@ -16,6 +16,13 @@ const     memories = require('./bin/lib/memories');
 
 const session = require('cookie-session');
 const OktaMiddleware = require('@financial-times/okta-express-middleware');
+const okta = new OktaMiddleware({
+  client_id: process.env.OKTA_CLIENT,
+  client_secret: process.env.OKTA_SECRET,
+  issuer: process.env.OKTA_ISSUER,
+  appBaseUrl: process.env.BASE_URL,
+  scope: 'openid offline_access name'
+});
 
 app.use(session({
 	secret: process.env.SESSION_TOKEN,
@@ -92,21 +99,43 @@ app.get('/__gtg', (req, res) => {
 // these route *do* use OKTA
 app.set('json spaces', 2);
 
-if (process.env.BYPASS_TOKEN == 'true') {
-  console.log( 'WARNING: env.BYPASS_TOKEN set to "true", so skipping OKTA checks' );
-} else {
-  const okta = new OktaMiddleware({
-    client_id: process.env.OKTA_CLIENT,
-    client_secret: process.env.OKTA_SECRET,
-    issuer: process.env.OKTA_ISSUER,
-    appBaseUrl: process.env.BASE_URL,
-    scope: 'openid offline_access name'
-  });
+// Check for valid OKTA login or valid token to byass OKTA login
+// This function is not in a middleware or seperate file because
+// it requires the context of okta and app.use to function 
+app.use((req, res, next) => {
+	if(req.get('token') === process.env.TOKEN){
+		debug(`Token was valid`);
+		next();
+	} else if (!req.get('token'))	{
+    debug(`No token, failing over to OKTA`);
+		// here to replicate multiple app.uses we have to do
+		// some gross callback stuff. You might be able to
+    // find a nicer way to do this
+    
+		// This is the equivalent of calling this:
+		// app.use(okta.router);
+		// app.use(okta.ensureAuthenticated());
+    // app.use(okta.verifyJwts());
 
-  app.use(okta.router);
-  app.use(okta.ensureAuthenticated());
-  app.use(okta.verifyJwts());
-}
+		okta.router(req, res, error => {
+			if (error) {
+				return next(error);
+      }
+			okta.ensureAuthenticated()(req, res, error => {
+				if (error) {
+					return next(error);
+        }
+				okta.verifyJwts()(req, res, next);
+      });
+    });
+	} else {
+		res.status(401);
+		res.json({
+			status : 'err',
+			message : 'The token value passed was invalid.'
+		});
+  }
+});
 
 function sortIsland( island ){
   // sort all the entities by count and then alphabetically,
