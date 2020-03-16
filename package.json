@@ -22,7 +22,6 @@
   "homepage": "https://github.com/ftlabs/...#readme",
   "dependencies": {
     "@financial-times/okta-express-middleware": "0.0.4",
-    "@financial-times/s3o-middleware": "^3.0.1",
     "assert": "^1.5.0",
     "aws-sdk": "^2.576.0",
     "cookie-session": "^1.4.0",
