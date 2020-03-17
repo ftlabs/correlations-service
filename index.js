@@ -104,9 +104,12 @@ app.set('json spaces', 2);
 // it requires the context of okta and app.use to function 
 app.use((req, res, next) => {
 	if(req.get('token') === process.env.TOKEN){
-		debug(`Token was valid`);
+		debug(`Token (header) was valid`);
 		next();
-	} else if (!req.get('token'))	{
+	} else if(req.query.token === process.env.TOKEN){
+    debug(`Token (query string) was valid`);
+		next();
+  } else if (!req.get('token'))	{
     debug(`No token, failing over to OKTA`);
 		// here to replicate multiple app.uses we have to do
 		// some gross callback stuff. You might be able to
