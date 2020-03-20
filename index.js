@@ -101,20 +101,38 @@ app.set('json spaces', 2);
 
 // Check for valid OKTA login or valid token to byass OKTA login
 // This function is not in a middleware or seperate file because
-// it requires the context of okta and app.use to function 
+// it requires the context of okta and app.use to function
 app.use((req, res, next) => {
-	if(req.get('token') === process.env.TOKEN){
-		debug(`Token (header) was valid`);
-		next();
-	} else if(req.query.token === process.env.TOKEN){
-    debug(`Token (query string) was valid`);
-		next();
-  } else if (!req.get('token'))	{
-    debug(`No token, failing over to OKTA`);
+  if ('token' in req.headers){
+	   if(req.headers.token === process.env.TOKEN){
+		     debug(`Token (header) was valid.`);
+		     next();
+       } else {
+         debug(`The token (header) value passed was invalid.`);
+         res.status(401);
+         res.json({
+           status : 'err',
+           message : 'The token (header) value passed was invalid.'
+         });
+       }
+  } else if('token' in req.query ){
+    if(req.query.token === process.env.TOKEN){
+      debug(`Token (query string) was valid.`);
+		  next();
+    } else {
+      debug(`The token (query) value passed was invalid.`);
+      res.status(401);
+      res.json({
+        status : 'err',
+        message : 'The token (query) value passed was invalid.'
+      });
+    }
+  } else {
+    debug(`No token in header or query, so defaulting to OKTA`);
 		// here to replicate multiple app.uses we have to do
 		// some gross callback stuff. You might be able to
     // find a nicer way to do this
-    
+
 		// This is the equivalent of calling this:
 		// app.use(okta.router);
 		// app.use(okta.ensureAuthenticated());
@@ -131,12 +149,6 @@ app.use((req, res, next) => {
 				okta.verifyJwts()(req, res, next);
       });
     });
-	} else {
-		res.status(401);
-		res.json({
-			status : 'err',
-			message : 'The token value passed was invalid.'
-		});
   }
 });
 
