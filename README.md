@@ -22,10 +22,11 @@ When building locally, specify them in a local file, .env (and NB, this must not
 ## Header Params for all endpoints:
 
 * TOKEN=...
-	* Note: in the absence of token, the application will fall back to S3O. Otherwise, the token is passed to the endpoints as a header.
+	* Note: in the absence of token, the application will fall back to OKTA. Otherwise, the token is passed to the endpoints as a header.
 
 ## Mandatory Environment params (the absence of which will kill the app on startup)
 
+* PORT=3030
 * CAPI_KEY=...
 
 ## Optional Environment params:
