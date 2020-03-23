@@ -95,7 +95,6 @@ app.get('/__gtg', (req, res) => {
 	res.status(status).end();
 });
 
-
 // these route *do* use OKTA
 app.set('json spaces', 2);
 
