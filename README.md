@@ -26,8 +26,31 @@ When building locally, specify them in a local file, .env (and NB, this must not
 
 ## Mandatory Environment params (the absence of which will kill the app on startup)
 
-* PORT=3030
 * CAPI_KEY=...
+* PORT=
+* BASE_URL=
+* OKTA_CLIENT=
+* OKTA_ISSUER=
+* OKTA_SECRET=
+* SESSION_TOKEN=
+
+### .env vars for each Correlations service
+
+#### Correlations People
+
+* PORT=3004
+* BASE_URL=http://localhost:3004
+
+#### Correlations Topics
+
+* PORT=3005
+* BASE_URL=http://localhost:3005
+
+
+### Where to find OKTA .env vars
+
+- Get `SESSION_TOKEN` from LastPass
+- Get details for finding `OKTA_ISSUER`, `OKTA_CLIENT` & `OKTA_SECRET` in LastPass
 
 ## Optional Environment params:
 
